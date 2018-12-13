@@ -1,10 +1,14 @@
-FROM hysds/pge-isce_giant
+FROM hysds/pge-gdal
 
-MAINTAINER aria-ops "aria-ops@list.jpl.nasa.gov"
-LABEL description="GRFN PGE container"
+MAINTAINER stchin "stchin@ntu.edu.sg"
+LABEL description="ALOS-2 PGE container"
 
 ARG id
 ARG gid
+
+USER root
+RUN set -ex && \
+ sudo pip install scipy --upgrade
 
 # create work directory
 RUN set -ex \
@@ -12,21 +16,11 @@ RUN set -ex \
  && chmod -R 755 /data \
  && chown -R ops:ops /data
 
-# copy ariamh code ensure proper permissions, and move dependencies to final locations
-COPY . /home/ops/ariamh
-RUN set -ex \
- && sudo chown -R ops:ops /home/ops/ariamh \
- && mv /home/ops/ariamh/spyddder-man /home/ops/verdi/ops/ \
- && mv /home/ops/ariamh/slcp2pm /home/ops/verdi/ops/ \
- && mv /home/ops/ariamh/slcp2cor /home/ops/verdi/ops/ \
- && cd /home/ops/verdi/ops/slcp2pm/src \
- && ./compile.sh \
- && cd /home/ops/verdi/ops/slcp2cor/src \
- && ./compile.sh
+USER ops
+# copy alos2-ingest
+COPY . /home/ops/verdi/ops/alos2-ingest
 
-RUN sudo pip install scipy --upgrade
 
 # set entrypoint
-USER ops
 WORKDIR /home/ops
 CMD ["/bin/bash", "--login"]
