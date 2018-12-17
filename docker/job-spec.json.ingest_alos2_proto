@@ -2,7 +2,7 @@
   "command": "/home/ops/verdi/ops/alos2-ingest/ingest_alos2_proto.sh",
   "imported_worker_files": {
     "/home/ops/.netrc": "/home/ops/.netrc",
-    "/home/ops/.aws": "/home/ops/.aws",
+    "/home/ops/.aws": "/home/ops/.aws"
   },
   "recommended-queues" : [
     "factotum-job_worker-large",
