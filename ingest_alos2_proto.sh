@@ -3,8 +3,7 @@ BASE_PATH=$(dirname "${BASH_SOURCE}")
 BASE_PATH=$(cd "${BASE_PATH}"; pwd)
 
 # export GDAL env variables (adapted from isce.sh)
-export LD_LIBRARY_PATH=/usr/local/gdal/lib:$LD_LIBRARY_PATH
-export GDAL_DATA=/usr/local/gdal/share/gdal
+export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
 # wrapper for ingest_alos2_proto.py
 
