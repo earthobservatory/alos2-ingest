@@ -164,17 +164,17 @@ def create_metadata(alos2_md_file, download_url):
 def create_dataset(metadata):
     logging.info("Extracting datasets from metadata")
     # get settings for dataset version
-    settings_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                 'settings.json')
-    if not os.path.exists(settings_file):
-        settings_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                     'settings.json.tmpl')
-    settings = json.load(open(settings_file))
+    # settings_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+    #                              'settings.json')
+    # if not os.path.exists(settings_file):
+    #     settings_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+    #                                  'settings.json.tmpl')
+    # settings = json.load(open(settings_file))
 
     # datasets.json
     # extract metadata for datasets
     dataset = {
-        'version': settings['ALOS2_INGEST_VERSION'],
+        # 'version': settings['ALOS2_INGEST_VERSION'],
         'label': metadata['prod_name'],
         'starttime': datetime.datetime.strptime(metadata['alos2md']['img_scenestartdatetime'], '%Y%m%d %H:%M:%S.%f').strftime("%Y-%m-%dT%H:%M:%S.%f"),
         'endtime': datetime.datetime.strptime(metadata['alos2md']['img_sceneenddatetime'], '%Y%m%d %H:%M:%S.%f').strftime("%Y-%m-%dT%H:%M:%S.%f")
