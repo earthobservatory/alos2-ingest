@@ -6,5 +6,5 @@ ARIA PGEs
     - download
     - extract
     - create visualization with map tiles on leaflet
-        * compute polygon from GTiff (zoom level 0-8)
+        * compute polygon from GTiff (zoom level 0-14)
         * create KMZ files for visualization on Google earth
