@@ -19,15 +19,23 @@
   "params" : [
     {
       "name": "download_url",
-      "destination": "positional"
+      "destination": "context"
     },
     {
-      "name": "file_type",
-      "destination": "positional"
+      "name": "auig2_orderid",
+      "destination": "context"
+    },
+    {
+      "name": "auig2_username",
+      "destination": "context"
+    },
+    {
+      "name": "auig2_password",
+      "destination": "context"
     },
     {
       "name": "path_number_to_check",
-      "destination": "positional"
+      "destination": "context"
     }
   ]
 }

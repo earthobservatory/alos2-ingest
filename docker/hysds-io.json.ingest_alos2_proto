@@ -14,11 +14,31 @@
   "params" : [
     {
       "name": "download_url",
-      "from": "submitter"
+      "from": "submitter",
+      "optional": true
     },
     {
       "name": "file_type",
-      "from": "submitter"
+      "from": "submitter",
+      "default": "zip"
+    },
+    {
+      "name": "auig2_orderid",
+      "from": "submitter",
+      "placeholder":"(optional) order-id - if getting from AUIG2",
+      "optional": true
+    },
+    {
+      "name": "auig2_username",
+      "from": "submitter",
+      "placeholder":"(optional) username - if getting from AUIG2",
+      "optional": true
+    },
+    {
+      "name": "auig2_password",
+      "from": "submitter",
+      "placeholder":"(optional) password - if getting from AUIG2",
+      "optional": true
     },
     {
       "name": "path_number_to_check",

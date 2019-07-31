@@ -12,10 +12,9 @@ HTTP/HTTPS, FTP and OAuth authentication is handled using .netrc.
 
 import datetime, os, sys, re, requests, json, logging, traceback, argparse, shutil, glob
 import zipfile
-from urlparse import urlparse
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from requests.packages.urllib3.exceptions import InsecurePlatformWarning
-import boto
+# import boto
 import osaka.main
 import numpy as np
 import scipy.spatial
@@ -23,14 +22,14 @@ from osgeo import gdal
 
 import ConfigParser
 import StringIO
-
-from hysds.orchestrator import submit_job
-import hysds.orchestrator
-from hysds.celery import app
-from hysds.dataset_ingest import ingest
-from hysds_commons.job_rest_utils import single_process_and_submission
-
+#
+# from hysds.orchestrator import submit_job
+# import hysds.orchestrator
+# from hysds.celery import app
+# from hysds.dataset_ingest import ingest
+# from hysds_commons.job_rest_utils import single_process_and_submission
 from subprocess import check_call
+import scripts.auig2_download as auig2
 
 # disable warnings for SSL verification
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -76,19 +75,22 @@ def extract(zip_file):
     return prod_dir
 
 
-def download(download_url, dest, oauth_url):
+def download(download_url, oauth_url):
     # download
+    dest = os.path.basename(download_url)
     logging.info("Downloading %s to %s." % (download_url, dest))
     try:
         osaka.main.get(download_url, dest, params={"oauth": oauth_url}, measure=True, output="./pge_metrics.json")
-    except Exception, e:
+    except Exception as e:
         tb = traceback.format_exc()
         logging.error("Failed to download %s to %s: %s" % (download_url,
                                                            dest, tb))
         raise
 
+def download_auig2(order, user, password):
+    auig2_download.download()
 
-def create_metadata(alos2_md_file, download_url):
+def create_metadata(alos2_md_file, download_source):
     # TODO: Some of these are hardcoded! Do we need them?
     metadata = {}
     # open summary.txt to extract metadata
@@ -137,7 +139,7 @@ def create_metadata(alos2_md_file, download_url):
     # others
     metadata['dataset'] = "ALOS2_GeoTIFF"
     metadata['source'] = "jaxa"
-    metadata['download_url'] = download_url
+    metadata['download_source'] = download_source
     location = {}
     location['type'] = 'Polygon'
     location['coordinates'] = [[
@@ -293,134 +295,172 @@ def create_product_kmz(tiff_file):
     return
 
 
-def ingest_alos2(download_url, file_type, path_number=None, oauth_url=None):
+def ingest_alos2(download_source, file_type, path_number=None):
     """Download file, push to repo and submit job for extraction."""
 
-    # get filename
-    pri_zip_path = os.path.basename(download_url)
-    download(download_url, pri_zip_path, oauth_url)
+    pri_zip_paths = glob.glob('*.zip')
 
-    # verify downloaded file was not corrupted
-    logging.info("Verifying %s is file type %s." % (pri_zip_path, file_type))
-    try:
-        verify(pri_zip_path, file_type)
-        sec_zip_dir = extract(pri_zip_path)
+    for pri_zip_path in pri_zip_paths:
+        # verify downloaded file was not corrupted
+        logging.info("Verifying %s is file type %s." % (pri_zip_path, file_type))
+        try:
+            verify(pri_zip_path, file_type)
+            sec_zip_dir = extract(pri_zip_path)
 
-        # unzip the second layer to gather metadata
-        sec_zip_file = glob.glob(os.path.join(sec_zip_dir,'*.zip'))
-        if not len(sec_zip_file) == 1:
-            raise RuntimeError("Unable to find second zipfile under %s" % sec_zip_dir)
+            # unzip the second layer to gather metadata
+            sec_zip_file = glob.glob(os.path.join(sec_zip_dir,'*.zip'))
+            if not len(sec_zip_file) == 1:
+                raise RuntimeError("Unable to find second zipfile under %s" % sec_zip_dir)
 
-        logging.info("Verifying %s is file type %s." % (sec_zip_file[0], file_type))
-        verify(sec_zip_file[0], file_type)
-        product_dir = extract(sec_zip_file[0])
+            logging.info("Verifying %s is file type %s." % (sec_zip_file[0], file_type))
+            verify(sec_zip_file[0], file_type)
+            product_dir = extract(sec_zip_file[0])
 
-    except Exception, e:
-        tb = traceback.format_exc()
-        logging.error("Failed to verify and extract files of type %s: %s" % \
-                      (file_type, tb))
-        raise
+        except Exception as e:
+            tb = traceback.format_exc()
+            logging.error("Failed to verify and extract files of type %s: %s" % \
+                          (file_type, tb))
+            raise
 
-    # create met.json
-    alos2_md_file = os.path.join(product_dir, "summary.txt")
-    metadata = create_metadata(alos2_md_file, download_url)
+        # create met.json
+        alos2_md_file = os.path.join(product_dir, "summary.txt")
+        metadata = create_metadata(alos2_md_file, download_source)
 
-    #checks path number formulation:
-    if path_number:
-        path_num = int(float(path_number))
-        logging.info("Checking manual input path number {} against formulated path number {}"
-                     .format(path_num, metadata['trackNumber']))
-        if path_num != metadata['trackNumber']:
-            raise RuntimeError("There might be an error in the formulation of path number. "
-                               "Formulated path_number: {} | Manual input path_number: {}"
-                               .format(metadata['trackNumber'], path_num))
-
-
-    # create dataset.json
-    dataset = create_dataset(metadata)
-
-    # create the product directory
-    dataset_name = metadata['prod_name']
-    proddir = os.path.join(".", dataset_name)
-    os.makedirs(proddir)
-    # move all files forward
-    files = os.listdir(product_dir)
-    for f in files:
-        shutil.move(os.path.join(product_dir, f), proddir)
+        #checks path number formulation:
+        if path_number:
+            path_num = int(float(path_number))
+            logging.info("Checking manual input path number {} against formulated path number {}"
+                         .format(path_num, metadata['trackNumber']))
+            if path_num != metadata['trackNumber']:
+                raise RuntimeError("There might be an error in the formulation of path number. "
+                                   "Formulated path_number: {} | Manual input path_number: {}"
+                                   .format(metadata['trackNumber'], path_num))
 
 
-    # create post products
-    tiff_regex = re.compile("IMG-([A-Z]{2})-ALOS2(.{27}).tif")
-    tiff_files = [f for f in os.listdir(proddir) if tiff_regex.match(f)]
+        # create dataset.json
+        dataset = create_dataset(metadata)
 
-    tile_md = {"tiles": True, "tile_layers": []}
-
-    # we need to override the coordinates bbox to cover actula swath if dataset is Level2.1
-    # L2.1 is Geo-coded (Map projection based on north-oriented map direction)
-    need_swath_poly = "2.1" in dataset_name
-    tile_output_dir = "{}/tiles/".format(proddir)
-
-    for tf in tiff_files:
-        tif_file_path = os.path.join(proddir, tf)
-        # process the geotiff to remove nodata
-        processed_tif_disp = process_geotiff_disp(tif_file_path)
-
-        # create the layer for facet view (only one layer created)
-        if not os.path.isdir(tile_output_dir):
-            layer = tiff_regex.match(tf).group(1)
-            create_tiled_layer(os.path.join(tile_output_dir, layer), processed_tif_disp, zoom=[0, 14])
-            tile_md["tile_layers"].append(layer)
-
-        # create the browse pngs
-        create_product_browse(processed_tif_disp)
-
-        create_product_kmz(processed_tif_disp)
-
-        if need_swath_poly:
-            coordinates = get_swath_polygon_coords(processed_tif_disp)
-            # Override cooirdinates from summary.txt
-            metadata['location']['coordinates'] = [coordinates]
-            dataset['location']['coordinates'] = [coordinates]
-            # do this once only
-            need_swath_poly = False
+        # create the product directory
+        dataset_name = metadata['prod_name']
+        proddir = os.path.join(".", dataset_name)
+        os.makedirs(proddir)
+        # move all files forward
+        files = os.listdir(product_dir)
+        for f in files:
+            shutil.move(os.path.join(product_dir, f), proddir)
 
 
-    #udpate the tiles
-    metadata.update(tile_md)
+        # create post products
+        tiff_regex = re.compile("IMG-([A-Z]{2})-ALOS2(.{27}).tif")
+        tiff_files = [f for f in os.listdir(proddir) if tiff_regex.match(f)]
 
-    # dump metadata
-    with open(os.path.join(proddir, dataset_name + ".met.json"), "w") as f:
-        json.dump(metadata, f, indent=2)
-        f.close()
+        tile_md = {"tiles": True, "tile_layers": [], "tile_max_zoom": []}
 
-    # dump dataset
-    with open(os.path.join(proddir, dataset_name + ".dataset.json"), "w") as f:
-        json.dump(dataset, f, indent=2)
-        f.close()
+        # we need to override the coordinates bbox to cover actula swath if dataset is Level2.1
+        # L2.1 is Geo-coded (Map projection based on north-oriented map direction)
+        need_swath_poly = "2.1" in dataset_name
+        tile_output_dir = "{}/tiles/".format(proddir)
 
-    # remove unwanted zips
-    shutil.rmtree(sec_zip_dir, ignore_errors=True)
-    # retaining primary zip, we can delete it if we want
-    # os.remove(pri_zip_path)
+        for tf in tiff_files:
+            tif_file_path = os.path.join(proddir, tf)
+            # process the geotiff to remove nodata
+            processed_tif_disp = process_geotiff_disp(tif_file_path)
+
+            # create the layer for facet view (only one layer created)
+            if not os.path.isdir(tile_output_dir):
+                tile_max_zoom = 12
+                layer = tiff_regex.match(tf).group(1)
+                create_tiled_layer(os.path.join(tile_output_dir, layer), processed_tif_disp, zoom=[0, tile_max_zoom])
+                tile_md["tile_layers"].append(layer)
+                tile_md["tile_max_zoom"].append(tile_max_zoom)
+
+            # create the browse pngs
+            create_product_browse(processed_tif_disp)
+
+            create_product_kmz(processed_tif_disp)
+
+            if need_swath_poly:
+                coordinates = get_swath_polygon_coords(processed_tif_disp)
+                # Override cooirdinates from summary.txt
+                metadata['location']['coordinates'] = [coordinates]
+                dataset['location']['coordinates'] = [coordinates]
+                # do this once only
+                need_swath_poly = False
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("download_url", help="download file URL " +
-                                             "(credentials stored " +
-                                             "in .netrc)")
-    parser.add_argument("file_type", help="download file type to verify",
-                        choices=ALL_TYPES)
+        #udpate the tiles
+        metadata.update(tile_md)
+
+        # dump metadata
+        with open(os.path.join(proddir, dataset_name + ".met.json"), "w") as f:
+            json.dump(metadata, f, indent=2)
+            f.close()
+
+        # dump dataset
+        with open(os.path.join(proddir, dataset_name + ".dataset.json"), "w") as f:
+            json.dump(dataset, f, indent=2)
+            f.close()
+
+        # remove unwanted zips
+        shutil.rmtree(sec_zip_dir, ignore_errors=True)
+        # retaining primary zip, we can delete it if we want
+        # os.remove(pri_zip_path)
+
+def load_context():
+    with open('_context.json') as data_file:
+        data = json.load(data_file)
+        return data
+
+def cmdLineParse():
+    '''
+    Command line parser.
+    '''
+
+    parser = argparse.ArgumentParser( description='Getting ALOS-2 L2.1 / L1.1 data into ARIA')
+    parser.add_argument('-d', dest='download_url', type=str, default='',
+            help = 'Download url if available')
+    parser.add_argument('-o', dest='order_id', type=str, default='',
+            help = 'Order ID from AUIG2 if available')
+    parser.add_argument('-u', dest='username', type=str, default='',
+            help = 'Usernmae from AUIG2 if available')
+    parser.add_argument('-p', dest='password', type=str, default='',
+            help = 'Password from AUIG2 if available')
     parser.add_argument("--path_number_to_check", help="Path number provided from ALOS2 Ordering system to "
                                                      "check against empirical formulation.", required=False)
     parser.add_argument("--oauth_url", help="OAuth authentication URL " +
                                             "(credentials stored in " +
                                             ".netrc)", required=False)
+    parser.add_argument("--file_type", dest='file_type', help="download file type to verify", default='zip',
+                        choices=ALL_TYPES, required=False)
+    return parser.parse_args()
 
-    args = parser.parse_args()
+if __name__ == "__main__":
+    args = cmdLineParse()
 
     try:
-        ingest_alos2(args.download_url, args.file_type, path_number=args.path_number_to_check, oauth_url=args.oauth_url)
+        # first check if we need to read from _context.json
+        if not (args.download_url or args.order_id):
+            # no inputs defined (as per defaults)
+            # we need to try to load from context
+            ctx = load_context()
+            args.download_url = ctx["download_url"]
+            args.order_id  = ctx["auig2_orderid"]
+            args.username=ctx["auig2_username"]
+            args.password=ctx["auig2_password"]
+            args.path_number_to_check=ctx["path_number_to_check"]
+
+        if args.download_url:
+            download(args.download_url, args.oauth_url)
+            download_source = args.download_url
+        elif args.order_id:
+            auig2.download(args)
+            download_source = "UN:%s_OrderID:%s"
+        else:
+            raise RuntimeError("Unable to do anything. Download parametes not defined. "
+                               "Input args: {}".format(str(args)))
+
+        ingest_alos2(download_source, args.file_type, path_number=args.path_number_to_check)
+
     except Exception as e:
         with open('_alt_error.txt', 'a') as f:
             f.write("%s\n" % str(e))
