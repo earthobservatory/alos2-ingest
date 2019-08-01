@@ -18,11 +18,6 @@
       "optional": true
     },
     {
-      "name": "file_type",
-      "from": "submitter",
-      "default": "zip"
-    },
-    {
       "name": "auig2_orderid",
       "from": "submitter",
       "placeholder":"(optional) order-id - if getting from AUIG2",
