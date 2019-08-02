@@ -137,7 +137,7 @@ def create_metadata(alos2_md_file, download_source):
     metadata['direction'] = "ascending" if dataset_name[31] is "A" else "descending"
 
     # others
-    metadata['dataset'] = "ALOS2_GeoTIFF"
+    metadata['dataset'] = "ALOS2_GeoTIFF" if "TIFF" in metadata['alos2md']['pdi_productformat'] else "ALOS2_CEOS"
     metadata['source'] = "jaxa"
     metadata['download_source'] = download_source
     location = {}
@@ -151,14 +151,6 @@ def create_metadata(alos2_md_file, download_source):
 
     ]]
     metadata['location'] = location
-
-    # # Add metadata from context.json
-    # # copy _context.json if it exists
-    # ctx = {}
-    # ctx_file = "_context.json"
-    # if os.path.exists(ctx_file):
-    #     with open(ctx_file) as f:
-    #         ctx = json.load(f)
 
     return metadata
 
@@ -314,7 +306,7 @@ def ingest_alos2(download_source, file_type, path_number=None):
 
             logging.info("Verifying %s is file type %s." % (sec_zip_file[0], file_type))
             verify(sec_zip_file[0], file_type)
-            product_dir = extract(sec_zip_file[0])
+            raw_dir = extract(sec_zip_file[0])
 
         except Exception as e:
             tb = traceback.format_exc()
@@ -323,7 +315,7 @@ def ingest_alos2(download_source, file_type, path_number=None):
             raise
 
         # create met.json
-        alos2_md_file = os.path.join(product_dir, "summary.txt")
+        alos2_md_file = os.path.join(raw_dir, "summary.txt")
         metadata = create_metadata(alos2_md_file, download_source)
 
         #checks path number formulation:
@@ -343,16 +335,12 @@ def ingest_alos2(download_source, file_type, path_number=None):
         # create the product directory
         dataset_name = metadata['prod_name']
         proddir = os.path.join(".", dataset_name)
-        os.makedirs(proddir)
-        # move all files forward
-        files = os.listdir(product_dir)
-        for f in files:
-            shutil.move(os.path.join(product_dir, f), proddir)
-
+        if not os.path.exists(proddir):
+            os.makedirs(proddir)
 
         # create post products
         tiff_regex = re.compile("IMG-([A-Z]{2})-ALOS2(.{27}).tif")
-        tiff_files = [f for f in os.listdir(proddir) if tiff_regex.match(f)]
+        tiff_files = [f for f in os.listdir(raw_dir) if tiff_regex.match(f)]
 
         tile_md = {"tiles": True, "tile_layers": [], "tile_max_zoom": []}
 
@@ -362,7 +350,7 @@ def ingest_alos2(download_source, file_type, path_number=None):
         tile_output_dir = "{}/tiles/".format(proddir)
 
         for tf in tiff_files:
-            tif_file_path = os.path.join(proddir, tf)
+            tif_file_path = os.path.join(raw_dir, tf)
             # process the geotiff to remove nodata
             processed_tif_disp = process_geotiff_disp(tif_file_path)
 
@@ -377,7 +365,7 @@ def ingest_alos2(download_source, file_type, path_number=None):
             # create the browse pngs
             create_product_browse(processed_tif_disp)
 
-            create_product_kmz(processed_tif_disp)
+            # create_product_kmz(processed_tif_disp)
 
             if need_swath_poly:
                 coordinates = get_swath_polygon_coords(processed_tif_disp)
@@ -387,9 +375,18 @@ def ingest_alos2(download_source, file_type, path_number=None):
                 # do this once only
                 need_swath_poly = False
 
-
         #udpate the tiles
         metadata.update(tile_md)
+
+        # move browsefile to proddir
+        browse_files = sorted(glob.glob(os.path.join(raw_dir, '*browse*.png')))
+        for fn in browse_files:
+            shutil.move(fn, proddir)
+
+        # move main zip file as dataset to proddir
+        archive_filename = "{}/{}.zip".format(proddir,proddir)
+        shutil.move(sec_zip_file[0], archive_filename)
+        metadata["archive_filename"] = os.path.basename(archive_filename)
 
         # dump metadata
         with open(os.path.join(proddir, dataset_name + ".met.json"), "w") as f:
@@ -401,7 +398,6 @@ def ingest_alos2(download_source, file_type, path_number=None):
             json.dump(dataset, f, indent=2)
             f.close()
 
-        # remove unwanted zips
         shutil.rmtree(sec_zip_dir, ignore_errors=True)
         # retaining primary zip, we can delete it if we want
         # os.remove(pri_zip_path)
