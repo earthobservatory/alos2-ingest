@@ -7,8 +7,8 @@ ARG id
 ARG gid
 
 USER root
-RUN set -ex && \
- sudo pip install scipy --upgrade
+# RUN set -ex && \
+#  sudo pip install scipy --upgrade
 
 # create work directory
 RUN set -ex \
