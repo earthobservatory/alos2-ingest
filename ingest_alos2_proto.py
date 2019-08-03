@@ -87,40 +87,14 @@ def download(download_url, oauth_url):
                                                            dest, tb))
         raise
 
-def download_auig2(order, user, password):
-    auig2_download.download()
-
-def create_metadata(alos2_md_file, download_source):
-    # TODO: Some of these are hardcoded! Do we need them?
-    metadata = {}
-    # open summary.txt to extract metadata
-    # extract information from summary see: https://www.eorc.jaxa.jp/ALOS-2/en/doc/fdata/PALSAR-2_xx_Format_GeoTIFF_E_r.pdf
-    logging.info("Extracting metadata from %s" % alos2_md_file)
-    dummy_section = "summary"
-    with open(alos2_md_file, 'r') as f:
-        # need to add dummy section for config parse to read .properties file
-        summary_string = '[%s]\n' % dummy_section + f.read()
-    summary_string = summary_string.replace('"', '')
-    buf = StringIO.StringIO(summary_string)
-    config = ConfigParser.ConfigParser()
-    config.readfp(buf)
-
-    # parse the metadata from summary.txt
-    alos2md = {}
-    for name, value in config.items(dummy_section):
-        alos2md[name] = value
-
-    metadata['alos2md'] = alos2md
-
-    # facetview filters
-    dataset_name = metadata['alos2md']['scs_sceneid'] + "_" + metadata['alos2md']['pds_productid']
+def md_frm_dataset_name(metadata, dataset_name):
     metadata['prod_name'] = dataset_name
     metadata['spacecraftName'] = dataset_name[0:5]
     metadata['dataset_type'] = dataset_name[0:5]
     metadata['orbitNumber'] = int(dataset_name[5:10])
     metadata['frameID'] = int(dataset_name[10:14])
     # this emprical forumla to get path/track number is derived from Eric Lindsey's modeling and fits for all L1.1 data
-    metadata['trackNumber'] = int((14*metadata['orbitNumber']+24) % 207)
+    metadata['trackNumber'] = int((14 * metadata['orbitNumber'] + 24) % 207)
     prod_datetime = datetime.datetime.strptime(dataset_name[15:21], '%y%m%d')
     prod_date = prod_datetime.strftime("%Y-%m-%d")
     metadata['prod_date'] = prod_date
@@ -136,21 +110,84 @@ def create_metadata(alos2_md_file, download_source):
     metadata['mapProjection'] = dataset_name[30]
     metadata['direction'] = "ascending" if dataset_name[31] is "A" else "descending"
 
+    return metadata
+
+
+def md_frm_summary(summary_file, metadata):
+    # open summary.txt to extract metadata
+    # extract information from summary see: https://www.eorc.jaxa.jp/ALOS-2/en/doc/fdata/PALSAR-2_xx_Format_GeoTIFF_E_r.pdf
+    logging.info("Extracting metadata from %s" % summary_file)
+    dummy_section = "summary"
+    with open(summary_file, 'r') as f:
+        # need to add dummy section for config parse to read .properties file
+        summary_string = '[%s]\n' % dummy_section + f.read()
+    summary_string = summary_string.replace('"', '')
+    buf = StringIO.StringIO(summary_string)
+    config = ConfigParser.ConfigParser()
+    config.readfp(buf)
+
+    # parse the metadata from summary.txt
+    alos2md = {}
+    for name, value in config.items(dummy_section):
+        alos2md[name] = value
+
+    metadata['alos2md'] = alos2md
+
     # others
     metadata['dataset'] = "ALOS2_GeoTIFF" if "TIFF" in metadata['alos2md']['pdi_productformat'] else "ALOS2_CEOS"
     metadata['source'] = "jaxa"
-    metadata['download_source'] = download_source
+
     location = {}
     location['type'] = 'Polygon'
     location['coordinates'] = [[
-        [float(metadata['alos2md']['img_imagescenelefttoplongitude']), float(metadata['alos2md']['img_imagescenelefttoplatitude'])],
-        [float(metadata['alos2md']['img_imagescenerighttoplongitude']), float(metadata['alos2md']['img_imagescenerighttoplatitude'])],
-        [float(metadata['alos2md']['img_imagescenerightbottomlongitude']), float(metadata['alos2md']['img_imagescenerightbottomlatitude'])],
-        [float(metadata['alos2md']['img_imagesceneleftbottomlongitude']), float(metadata['alos2md']['img_imagesceneleftbottomlatitude'])],
-        [float(metadata['alos2md']['img_imagescenelefttoplongitude']), float(metadata['alos2md']['img_imagescenelefttoplatitude'])]
-
-    ]]
+        [float(alos2md['img_imagescenelefttoplongitude']), float(alos2md['img_imagescenelefttoplatitude'])],
+        [float(alos2md['img_imagescenerighttoplongitude']), float(alos2md['img_imagescenerighttoplatitude'])],
+        [float(alos2md['img_imagescenerightbottomlongitude']), float(alos2md['img_imagescenerightbottomlatitude'])],
+        [float(alos2md['img_imagesceneleftbottomlongitude']), float(alos2md['img_imagesceneleftbottomlatitude'])],
+        [float(alos2md['img_imagescenelefttoplongitude']), float(alos2md['img_imagescenelefttoplatitude'])]
+        ]]
     metadata['location'] = location
+    metadata['starttime'] = datetime.datetime.strptime(alos2md['img_scenestartdatetime'], '%Y%m%d %H:%M:%S.%f').strftime("%Y-%m-%dT%H:%M:%S.%f")
+    metadata['endtime'] = datetime.datetime.strptime(alos2md['img_sceneenddatetime'], '%Y%m%d %H:%M:%S.%f').strftime("%Y-%m-%dT%H:%M:%S.%f")
+    return metadata
+
+def md_frm_isce(alos2_dir, metadata):
+
+    # extract metadata with isce from IMG files
+    md_file = "alos2_md.json"
+    cmd = "{}/scripts/extract_alos2_md.py --dir {} --output {}".format(
+        os.path.dirname(os.path.realpath(__file__)),
+        alos2_dir,
+        md_file)
+
+    check_call(cmd, shell=True)
+    md = json.load(open(md_file))
+
+    metadata['alos2md'] = md
+    metadata['dataset'] = "ALOS2-L1.1_SLC"
+    metadata['source'] = "jaxa"
+
+    location = {}
+    location['type'] = 'Polygon'
+    location['coordinates'] = md['geojson_poly']
+    metadata['location'] = location
+    metadata['starttime'] = md['sensingStart']
+    metadata['endtime'] = md['sensingStop']
+
+    return metadata
+
+
+def create_metadata(alos2_dir, dataset_name):
+    # TODO: Some of these are hardcoded! Do we need them?
+    metadata = {}
+    metadata = md_frm_dataset_name(metadata, dataset_name)
+    summary_file = os.path.join(alos2_dir, "summary.txt")
+    if os.path.exists(summary_file) and not "1.1" in dataset_name:
+        metadata = md_frm_summary(summary_file, metadata)
+    elif "1.1" in dataset_name:
+        metadata = md_frm_isce(alos2_dir, metadata)
+    else:
+        raise RuntimeError("Cannot recognise ALOS2 directory format!")
 
     return metadata
 
@@ -168,8 +205,8 @@ def create_dataset(metadata):
     dataset = {
         'version': settings['ALOS2_INGEST_VERSION'],
         'label': metadata['prod_name'],
-        'starttime': datetime.datetime.strptime(metadata['alos2md']['img_scenestartdatetime'], '%Y%m%d %H:%M:%S.%f').strftime("%Y-%m-%dT%H:%M:%S.%f"),
-        'endtime': datetime.datetime.strptime(metadata['alos2md']['img_sceneenddatetime'], '%Y%m%d %H:%M:%S.%f').strftime("%Y-%m-%dT%H:%M:%S.%f")
+        'starttime': metadata['starttime'],
+        'endtime': metadata['endtime']
     }
     dataset['location'] = metadata['location']
 
@@ -269,23 +306,25 @@ def create_tiled_layer(output_dir, tiff_file, zoom=[0, 8]):
             zoom_f -= 1
 
 
-def create_product_browse(tiff_file):
-    logging.info("Creating browse png from %s" % tiff_file)
-    options_string = '-of PNG -outsize 10% 10%'
-    out_file = os.path.splitext(tiff_file)[0] + '.browse.png'
-    out_file_small = os.path.splitext(tiff_file)[0] + '.browse_small.png'
-    gdal_translate(out_file, tiff_file, options_string)
+def create_product_browse(file):
+    options_string = '-of PNG'
+    if "tif" in file:
+        # tiff files are huge, our options need to resize them
+        options_string += ' -outsize 10% 10%'
+
+    logging.info("Creating browse png from %s" % file)
+    out_file = os.path.splitext(file)[0] + '.browse.png'
+    out_file_small = os.path.splitext(file)[0] + '.browse_small.png'
+    gdal_translate(out_file, file, options_string)
     os.system("convert -resize 250x250 %s %s" % (out_file, out_file_small))
     return
 
-
-def create_product_kmz(tiff_file):
-    logging.info("Creating KMZ from %s" % tiff_file)
-    out_kmz = os.path.splitext(tiff_file)[0] + ".kmz"
-    options_string = '-of KMLSUPEROVERLAY -ot Byte'
-    gdal_translate(out_kmz, tiff_file, options_string)
-    return
-
+# def create_product_kmz(tiff_file):
+#     logging.info("Creating KMZ from %s" % tiff_file)
+#     out_kmz = os.path.splitext(tiff_file)[0] + ".kmz"
+#     options_string = '-of KMLSUPEROVERLAY -ot Byte'
+#     gdal_translate(out_kmz, tiff_file, options_string)
+#     return
 
 def ingest_alos2(download_source, file_type, path_number=None):
     """Download file, push to repo and submit job for extraction."""
@@ -314,9 +353,18 @@ def ingest_alos2(download_source, file_type, path_number=None):
                           (file_type, tb))
             raise
 
-        # create met.json
-        alos2_md_file = os.path.join(raw_dir, "summary.txt")
-        metadata = create_metadata(alos2_md_file, download_source)
+        # figure out dataset name to start creating metadata
+        img_file = sorted(glob.glob(os.path.join(raw_dir, 'IMG*')))
+        dataset_name = None
+        if len(img_file) > 0:
+            m = re.search('IMG-[A-Z]{2}-(ALOS2.{27}).*', os.path.basename(img_file[0]))
+            if m:
+                dataset_name = m.group(1)
+        else:
+            raise RuntimeError("Unable to find any ALOS2 image files to process!")
+
+        metadata = create_metadata(raw_dir, dataset_name)
+        is_l11 = "1.1" in dataset_name
 
         #checks path number formulation:
         if path_number:
@@ -333,50 +381,57 @@ def ingest_alos2(download_source, file_type, path_number=None):
         dataset = create_dataset(metadata)
 
         # create the product directory
-        dataset_name = metadata['prod_name']
         proddir = os.path.join(".", dataset_name)
         if not os.path.exists(proddir):
             os.makedirs(proddir)
 
-        # create post products
-        tiff_regex = re.compile("IMG-([A-Z]{2})-ALOS2(.{27}).tif")
-        tiff_files = [f for f in os.listdir(raw_dir) if tiff_regex.match(f)]
+        if is_l11:
+            # create browse only for L1.1 data (if available)
+            jpg_files = sorted(glob.glob(os.path.join(raw_dir, '*.jpg')))
 
-        tile_md = {"tiles": True, "tile_layers": [], "tile_max_zoom": []}
+            for jpg in jpg_files:
+                create_product_browse(jpg)
 
-        # we need to override the coordinates bbox to cover actula swath if dataset is Level2.1
-        # L2.1 is Geo-coded (Map projection based on north-oriented map direction)
-        need_swath_poly = "2.1" in dataset_name
-        tile_output_dir = "{}/tiles/".format(proddir)
+        else:
+            # create post products (tiles) for L1.5 / L2.1 data
+            tiff_regex = re.compile("IMG-([A-Z]{2})-ALOS2(.{27}).tif")
+            tiff_files = [f for f in os.listdir(raw_dir) if tiff_regex.match(f)]
 
-        for tf in tiff_files:
-            tif_file_path = os.path.join(raw_dir, tf)
-            # process the geotiff to remove nodata
-            processed_tif_disp = process_geotiff_disp(tif_file_path)
+            tile_md = {"tiles": True, "tile_layers": [], "tile_max_zoom": []}
 
-            # create the layer for facet view (only one layer created)
-            if not os.path.isdir(tile_output_dir):
-                tile_max_zoom = 12
-                layer = tiff_regex.match(tf).group(1)
-                create_tiled_layer(os.path.join(tile_output_dir, layer), processed_tif_disp, zoom=[0, tile_max_zoom])
-                tile_md["tile_layers"].append(layer)
-                tile_md["tile_max_zoom"].append(tile_max_zoom)
+            # we need to override the coordinates bbox to cover actual swath if dataset is Level2.1
+            # L2.1 is Geo-coded (Map projection based on north-oriented map direction)
+            need_swath_poly = "2.1" in dataset_name
+            tile_output_dir = "{}/tiles/".format(proddir)
 
-            # create the browse pngs
-            create_product_browse(processed_tif_disp)
+            for tf in tiff_files:
+                tif_file_path = os.path.join(raw_dir, tf)
+                # process the geotiff to remove nodata
+                processed_tif_disp = process_geotiff_disp(tif_file_path)
 
-            # create_product_kmz(processed_tif_disp)
+                # create the layer for facet view (only one layer created)
+                if not os.path.isdir(tile_output_dir):
+                    tile_max_zoom = 12
+                    layer = tiff_regex.match(tf).group(1)
+                    create_tiled_layer(os.path.join(tile_output_dir, layer), processed_tif_disp, zoom=[0, tile_max_zoom])
+                    tile_md["tile_layers"].append(layer)
+                    tile_md["tile_max_zoom"].append(tile_max_zoom)
 
-            if need_swath_poly:
-                coordinates = get_swath_polygon_coords(processed_tif_disp)
-                # Override cooirdinates from summary.txt
-                metadata['location']['coordinates'] = [coordinates]
-                dataset['location']['coordinates'] = [coordinates]
-                # do this once only
-                need_swath_poly = False
+                # create the browse pngs
+                create_product_browse(processed_tif_disp)
 
-        #udpate the tiles
-        metadata.update(tile_md)
+                # create_product_kmz(processed_tif_disp)
+
+                if need_swath_poly:
+                    coordinates = get_swath_polygon_coords(processed_tif_disp)
+                    # Override cooirdinates from summary.txt
+                    metadata['location']['coordinates'] = [coordinates]
+                    dataset['location']['coordinates'] = [coordinates]
+                    # do this once only
+                    need_swath_poly = False
+
+            #udpate the tiles
+            metadata.update(tile_md)
 
         # move browsefile to proddir
         browse_files = sorted(glob.glob(os.path.join(raw_dir, '*browse*.png')))
@@ -387,6 +442,7 @@ def ingest_alos2(download_source, file_type, path_number=None):
         archive_filename = "{}/{}.zip".format(proddir,proddir)
         shutil.move(sec_zip_file[0], archive_filename)
         metadata["archive_filename"] = os.path.basename(archive_filename)
+        metadata['download_source'] = download_source
 
         # dump metadata
         with open(os.path.join(proddir, dataset_name + ".met.json"), "w") as f:
@@ -446,7 +502,7 @@ if __name__ == "__main__":
             args.path_number_to_check=ctx["path_number_to_check"]
 
         if args.download_url:
-            download(args.download_url, args.oauth_url)
+            # download(args.download_url, args.oauth_url)
             download_source = args.download_url
         elif args.order_id:
             auig2.download(args)
