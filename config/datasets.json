@@ -47,6 +47,30 @@
           "s3://{{ DATASET_S3_ENDPOINT }}:80/{{ DATASET_BUCKET }}/browse/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}2.1{misc3}"
         ]
       }
+    },
+    {
+      "ipath": "ariamh::data/ALOS2-L1.1_SLC",
+      "level": "l1.1",
+      "type": "slc",
+      "match_pattern": "/ALOS2(?P<misc>\\d{9})-(?P<year>\\d{2})(?P<month>\\d{2})(?P<day>\\d{2})(?P<misc2>.{5})1.1(?P<misc3>.{3})$",
+      "alt_match_pattern": null,
+      "extractor": null,
+      "publish": {
+        "s3-profile-name": "default",
+        "location": "s3://{{ DATASET_S3_ENDPOINT }}:80/{{ DATASET_BUCKET }}/datasets/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.1{misc3}",
+        "urls": [
+          "http://{{ DATASET_BUCKET }}.{{ DATASET_S3_WEBSITE_ENDPOINT }}/datasets/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.1{misc3}",
+          "s3://{{ DATASET_S3_ENDPOINT }}:80/{{ DATASET_BUCKET }}/datasets/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.1{misc3}"
+        ]
+      },
+      "browse": {
+        "s3-profile-name": "default",
+        "location": "s3://{{ DATASET_S3_ENDPOINT }}:80/{{ DATASET_BUCKET }}/browse/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.1{misc3}",
+        "urls": [
+          "http://{{ DATASET_BUCKET }}.{{ DATASET_S3_WEBSITE_ENDPOINT }}/browse/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.1{misc3}",
+          "s3://{{ DATASET_S3_ENDPOINT }}:80/{{ DATASET_BUCKET }}/browse/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.1{misc3}"
+        ]
+      }
     }
   ]
 }
