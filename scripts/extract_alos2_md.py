@@ -9,7 +9,7 @@ from contrib.frameUtils.FrameInfoExtractor import FrameInfoExtractor
 import datetime
 import json
 import re
-
+import requests
 
 def create_insar_xml(scene_xml):
     fp = open('insarApp.xml', 'w')
@@ -63,32 +63,54 @@ def get_alos2_obj(dir_name):
 
 
 
-def create_alos2_md_json(insar_obj, filename):
+def create_alos2_md_isce(insar_obj, filename):
     FIE = FrameInfoExtractor()
     masterInfo = FIE.extractInfoFromFrame(insar_obj.frame)
     md = {}
     bbox  = masterInfo.bbox
     md['bbox_seq'] = ["nearEarlyCorner","farEarlyCorner", "nearLateCorner","farLateCorner"]
     md['bbox'] =  bbox
-    md['geojson_poly'] = [[
+    md['geometry'] = {
+        "coordinates":[[
         [bbox[0][1],bbox[0][0]], # nearEarlyCorner
         [bbox[1][1],bbox[1][0]], # farEarlyCorner
         [bbox[3][1],bbox[3][0]], # farLateCorner
         [bbox[2][1],bbox[2][0]], # nearLateCorner
         [bbox[0][1],bbox[0][0]], # nearEarlyCorner
-    ]]
-    md['sensingStart'] = masterInfo.sensingStart.strftime("%Y-%m-%dT%H:%M:%S.%f")
-    md['sensingStop'] = masterInfo.sensingStop.strftime("%Y-%m-%dT%H:%M:%S.%f")
-    md['orbitNumber'] = masterInfo.orbitNumber
-    md['spacecraftName'] = masterInfo.spacecraftName
-    md['frameNumber'] = masterInfo.frameNumber
-    md['direction'] = masterInfo.direction
-    md['squintAngle'] = insar_obj.frame.squintAngle
+        ]],
+        "type":"Polygon"
+    }
+    md['start_time'] = masterInfo.sensingStart.strftime("%Y-%m-%dT%H:%M:%S.%f")
+    md['stop_time'] = masterInfo.sensingStop.strftime("%Y-%m-%dT%H:%M:%S.%f")
+    md['absolute_orbit'] = masterInfo.orbitNumber
+    md['frame'] = masterInfo.frameNumber
+    md['flight_direction'] = masterInfo.direction
+    md['satellite_name'] = masterInfo.spacecraftName
+    md['source'] = "isce_preprocessing"
 
     with open(filename, "w") as f:
         json.dump(md, f, indent=2)
         f.close()
 
+def create_alos2_md_bos(dir_name, filename):
+    img_file = sorted(glob.glob(os.path.join(dir_name, 'IMG*')))
+    geo_server = "https://portal.bostechnologies.com/geoserver/bos/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=bos:sarcat&maxFeatures=50&outputFormat=json"
+    if len(img_file) > 0:
+        m = re.search('IMG-[A-Z]{2}-(ALOS2.{16})-.*', os.path.basename(img_file[0]))
+        id = m.group(1)
+        params = {'cql_filter': "(identifier='{}')".format(id)}
+
+        r = requests.get(geo_server, params)
+        r.raise_for_status()
+
+        md = r.json()["features"][0]
+        md['source'] = "bos_sarcat"
+        # move properties a level up
+        md.update(md['properties'])
+        del md['properties']
+        with open(filename, "w") as f:
+            json.dump(md, f, indent=2)
+            f.close()
 
 def cmdLineParse():
     '''
@@ -99,12 +121,25 @@ def cmdLineParse():
             help = 'directory containing the L1.1 ALOS2 CEOS files')
     parser.add_argument('--output', dest='op_json', type=str, default="alos2_md.json",
                         help='json file name to output metadata to')
+    parser.add_argument('--method', dest='method', type=str, default="",
+                        help='either "bos" (to get md from bos) or "isce" (to get md from isce preprocessing) or empty (to get from bos, fallback isce)')
     return parser.parse_args()
 
 if __name__ == '__main__':
     args = cmdLineParse()
-    insar_obj = get_alos2_obj(args.alos2dir)
-    create_alos2_md_json(insar_obj, args.op_json)
+    if args.method == "bos":
+        create_alos2_md_bos(args.alos2dir, args.op_json)
+    elif args.method == "isce":
+        insar_obj = get_alos2_obj(args.alos2dir)
+        create_alos2_md_isce(insar_obj, args.op_json)
+    else:
+        try:
+            create_alos2_md_bos(args.alos2dir, args.op_json)
+        except Exception as e:
+            print("Got exception trying to query bos sarcat: %s" % str(e))
+            # use isce if we are unable to get the bbox from bos
+            insar_obj = get_alos2_obj(args.alos2dir)
+            create_alos2_md_isce(insar_obj, args.op_json)
 
 
 
