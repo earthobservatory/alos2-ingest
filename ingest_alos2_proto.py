@@ -151,7 +151,7 @@ def md_frm_summary(summary_file, metadata):
     metadata['endtime'] = datetime.datetime.strptime(alos2md['img_sceneenddatetime'], '%Y%m%d %H:%M:%S.%f').strftime("%Y-%m-%dT%H:%M:%S.%f")
     return metadata
 
-def md_frm_isce(alos2_dir, metadata):
+def md_frm_extractor(alos2_dir, metadata):
 
     # extract metadata with isce from IMG files
     md_file = "alos2_md.json"
@@ -166,13 +166,9 @@ def md_frm_isce(alos2_dir, metadata):
     metadata['alos2md'] = md
     metadata['dataset'] = "ALOS2-L1.1_SLC"
     metadata['source'] = "jaxa"
-
-    location = {}
-    location['type'] = 'Polygon'
-    location['coordinates'] = md['geojson_poly']
-    metadata['location'] = location
-    metadata['starttime'] = md['sensingStart']
-    metadata['endtime'] = md['sensingStop']
+    metadata['location'] = md['geometry']
+    metadata['starttime'] = md['start_time']
+    metadata['endtime'] = md['stop_time']
 
     return metadata
 
@@ -185,7 +181,7 @@ def create_metadata(alos2_dir, dataset_name):
     if os.path.exists(summary_file) and not "1.1" in dataset_name:
         metadata = md_frm_summary(summary_file, metadata)
     elif "1.1" in dataset_name:
-        metadata = md_frm_isce(alos2_dir, metadata)
+        metadata = md_frm_extractor(alos2_dir, metadata)
     else:
         raise RuntimeError("Cannot recognise ALOS2 directory format!")
 
@@ -502,13 +498,13 @@ if __name__ == "__main__":
             args.path_number_to_check=ctx["path_number_to_check"]
 
         if args.download_url:
-            # download(args.download_url, args.oauth_url)
+            download(args.download_url, args.oauth_url)
             download_source = args.download_url
         elif args.order_id:
             auig2.download(args)
             download_source = "UN:%s_OrderID:%s"
         else:
-            raise RuntimeError("Unable to do anything. Download parametes not defined. "
+            raise RuntimeError("Unable to do anything. Download parameters not defined. "
                                "Input args: {}".format(str(args)))
 
         ingest_alos2(download_source, args.file_type, path_number=args.path_number_to_check)
