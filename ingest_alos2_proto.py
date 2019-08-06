@@ -49,29 +49,25 @@ ALL_TYPES.extend(ZIP_TYPE)
 SCALE_RANGE=[0, 7500]
 
 
-
-def verify(path, file_type):
+def verify_and_extract(zip_file, file_type):
     """Verify downloaded file is okay by checking that it can
        be unzipped/untarred."""
-
+    prod_dir = None
     if file_type in ZIP_TYPE:
-        if not zipfile.is_zipfile(path):
-            raise RuntimeError("%s is not a zipfile." % path)
-        with zipfile.ZipFile(path, 'r') as f:
+        if not zipfile.is_zipfile(zip_file):
+            raise RuntimeError("%s is not a zipfile." % zip_file)
+        with zipfile.ZipFile(zip_file, 'r') as f:
             ret = f.testzip()
             if ret:
-                raise RuntimeError("%s is corrupt. Test zip returns: %s" % (path, ret))
+                raise RuntimeError("%s is corrupt. Test zip returns: %s" % (zip_file, ret))
+            else:
+                prod_dir = zip_file.replace(".zip", "")
+                f.extractall(prod_dir)
+
     else:
         raise NotImplementedError("Failed to verify %s is file type %s." % \
-                                  (path, file_type))
+                                  (zip_file, file_type))
 
-
-def extract(zip_file):
-    """Extract the zipfile."""
-
-    with zipfile.ZipFile(zip_file, 'r') as zf:
-        prod_dir = zip_file.replace(".zip", "")
-        zf.extractall(prod_dir)
     return prod_dir
 
 
@@ -319,12 +315,105 @@ def create_product_browse(file):
     os.system("convert -resize 250x250 %s %s" % (out_file, out_file_small))
     return
 
-# def create_product_kmz(tiff_file):
-#     logging.info("Creating KMZ from %s" % tiff_file)
-#     out_kmz = os.path.splitext(tiff_file)[0] + ".kmz"
-#     options_string = '-of KMLSUPEROVERLAY -ot Byte'
-#     gdal_translate(out_kmz, tiff_file, options_string)
-#     return
+def productize(dataset_name, raw_dir, zip_file, download_source):
+    metadata = create_metadata(raw_dir, dataset_name)
+    is_l11 = "1.1" in dataset_name
+
+    # create dataset.json
+    dataset = create_dataset(metadata)
+
+    # create the product directory
+    proddir = os.path.join(".", dataset_name)
+    if not os.path.exists(proddir):
+        os.makedirs(proddir)
+
+    if is_l11:
+        # create browse only for L1.1 data (if available)
+        jpg_files = sorted(glob.glob(os.path.join(raw_dir, '*.jpg')))
+
+        for jpg in jpg_files:
+            create_product_browse(jpg)
+
+    else:
+        # create post products (tiles) for L1.5 / L2.1 data
+        tiff_regex = re.compile("IMG-([A-Z]{2})-ALOS2(.{27}).tif")
+        tiff_files = [f for f in os.listdir(raw_dir) if tiff_regex.match(f)]
+
+        tile_md = {"tiles": True, "tile_layers": [], "tile_max_zoom": []}
+
+        # we need to override the coordinates bbox to cover actual swath if dataset is Level2.1
+        # L2.1 is Geo-coded (Map projection based on north-oriented map direction)
+        need_swath_poly = "2.1" in dataset_name
+        tile_output_dir = "{}/tiles/".format(proddir)
+
+        for tf in tiff_files:
+            tif_file_path = os.path.join(raw_dir, tf)
+            # process the geotiff to remove nodata
+            processed_tif_disp = process_geotiff_disp(tif_file_path)
+
+            # create the layer for facet view (only one layer created)
+            if not os.path.isdir(tile_output_dir):
+                tile_max_zoom = 12
+                layer = tiff_regex.match(tf).group(1)
+                create_tiled_layer(os.path.join(tile_output_dir, layer), processed_tif_disp, zoom=[0, tile_max_zoom])
+                tile_md["tile_layers"].append(layer)
+                tile_md["tile_max_zoom"].append(tile_max_zoom)
+
+            # create the browse pngs
+            create_product_browse(processed_tif_disp)
+
+            # create_product_kmz(processed_tif_disp)
+
+            if need_swath_poly:
+                coordinates = get_swath_polygon_coords(processed_tif_disp)
+                # Override cooirdinates from summary.txt
+                metadata['location']['coordinates'] = [coordinates]
+                dataset['location']['coordinates'] = [coordinates]
+                # do this once only
+                need_swath_poly = False
+
+        # udpate the tiles
+        metadata.update(tile_md)
+
+    # move browsefile to proddir
+    browse_files = sorted(glob.glob(os.path.join(raw_dir, '*browse*.png')))
+    for fn in browse_files:
+        shutil.move(fn, proddir)
+
+    # move main zip file as dataset to proddir
+    archive_filename = "{}/{}.zip".format(proddir, proddir)
+    shutil.move(zip_file, archive_filename)
+    metadata["archive_filename"] = os.path.basename(archive_filename)
+    metadata['download_source'] = download_source
+
+    return metadata, dataset, proddir
+
+
+def extract_dataset_name(raw_dir):
+    # figure out dataset name to start creating metadata
+    img_file = sorted(glob.glob(os.path.join(raw_dir, 'IMG*')))
+    dataset_name = None
+    if len(img_file) > 0:
+        m = re.search('IMG-[A-Z]{2}-(ALOS2.{27}).*', os.path.basename(img_file[0]))
+        if m:
+            dataset_name = m.group(1)
+
+    else:
+        raise RuntimeError("Unable to find any ALOS2 image files to process!")
+
+    return dataset_name
+
+def check_path_num(metadata, path_number):
+    if path_number:
+        path_num = int(float(path_number))
+        logging.info("Checking manual input path number {} against formulated path number {}"
+                     .format(path_num, metadata['trackNumber']))
+        if path_num != metadata['trackNumber']:
+            raise RuntimeError("There might be an error in the formulation of path number. "
+                               "Formulated path_number: {} | Manual input path_number: {}"
+                               .format(metadata['trackNumber'], path_num))
+
+
 
 def ingest_alos2(download_source, file_type, path_number=None):
     """Download file, push to repo and submit job for extraction."""
@@ -335,8 +424,7 @@ def ingest_alos2(download_source, file_type, path_number=None):
         # verify downloaded file was not corrupted
         logging.info("Verifying %s is file type %s." % (pri_zip_path, file_type))
         try:
-            verify(pri_zip_path, file_type)
-            sec_zip_dir = extract(pri_zip_path)
+            sec_zip_dir = verify_and_extract(pri_zip_path,file_type)
 
             # unzip the second layer to gather metadata
             sec_zip_file = glob.glob(os.path.join(sec_zip_dir,'*.zip'))
@@ -344,8 +432,7 @@ def ingest_alos2(download_source, file_type, path_number=None):
                 raise RuntimeError("Unable to find second zipfile under %s" % sec_zip_dir)
 
             logging.info("Verifying %s is file type %s." % (sec_zip_file[0], file_type))
-            verify(sec_zip_file[0], file_type)
-            raw_dir = extract(sec_zip_file[0])
+            raw_dir = verify_and_extract(sec_zip_file[0], file_type)
 
         except Exception as e:
             tb = traceback.format_exc()
@@ -353,96 +440,14 @@ def ingest_alos2(download_source, file_type, path_number=None):
                           (file_type, tb))
             raise
 
-        # figure out dataset name to start creating metadata
-        img_file = sorted(glob.glob(os.path.join(raw_dir, 'IMG*')))
-        dataset_name = None
-        if len(img_file) > 0:
-            m = re.search('IMG-[A-Z]{2}-(ALOS2.{27}).*', os.path.basename(img_file[0]))
-            if m:
-                dataset_name = m.group(1)
-        else:
-            raise RuntimeError("Unable to find any ALOS2 image files to process!")
+        # get the datasetname from IMG files in raw_dir
+        dataset_name = extract_dataset_name(raw_dir)
 
-        metadata = create_metadata(raw_dir, dataset_name)
-        is_l11 = "1.1" in dataset_name
+        # productize our extracted data
+        metadata, dataset, proddir = productize(dataset_name, raw_dir, sec_zip_file[0], download_source)
 
         #checks path number formulation:
-        if path_number:
-            path_num = int(float(path_number))
-            logging.info("Checking manual input path number {} against formulated path number {}"
-                         .format(path_num, metadata['trackNumber']))
-            if path_num != metadata['trackNumber']:
-                raise RuntimeError("There might be an error in the formulation of path number. "
-                                   "Formulated path_number: {} | Manual input path_number: {}"
-                                   .format(metadata['trackNumber'], path_num))
-
-
-        # create dataset.json
-        dataset = create_dataset(metadata)
-
-        # create the product directory
-        proddir = os.path.join(".", dataset_name)
-        if not os.path.exists(proddir):
-            os.makedirs(proddir)
-
-        if is_l11:
-            # create browse only for L1.1 data (if available)
-            jpg_files = sorted(glob.glob(os.path.join(raw_dir, '*.jpg')))
-
-            for jpg in jpg_files:
-                create_product_browse(jpg)
-
-        else:
-            # create post products (tiles) for L1.5 / L2.1 data
-            tiff_regex = re.compile("IMG-([A-Z]{2})-ALOS2(.{27}).tif")
-            tiff_files = [f for f in os.listdir(raw_dir) if tiff_regex.match(f)]
-
-            tile_md = {"tiles": True, "tile_layers": [], "tile_max_zoom": []}
-
-            # we need to override the coordinates bbox to cover actual swath if dataset is Level2.1
-            # L2.1 is Geo-coded (Map projection based on north-oriented map direction)
-            need_swath_poly = "2.1" in dataset_name
-            tile_output_dir = "{}/tiles/".format(proddir)
-
-            for tf in tiff_files:
-                tif_file_path = os.path.join(raw_dir, tf)
-                # process the geotiff to remove nodata
-                processed_tif_disp = process_geotiff_disp(tif_file_path)
-
-                # create the layer for facet view (only one layer created)
-                if not os.path.isdir(tile_output_dir):
-                    tile_max_zoom = 12
-                    layer = tiff_regex.match(tf).group(1)
-                    create_tiled_layer(os.path.join(tile_output_dir, layer), processed_tif_disp, zoom=[0, tile_max_zoom])
-                    tile_md["tile_layers"].append(layer)
-                    tile_md["tile_max_zoom"].append(tile_max_zoom)
-
-                # create the browse pngs
-                create_product_browse(processed_tif_disp)
-
-                # create_product_kmz(processed_tif_disp)
-
-                if need_swath_poly:
-                    coordinates = get_swath_polygon_coords(processed_tif_disp)
-                    # Override cooirdinates from summary.txt
-                    metadata['location']['coordinates'] = [coordinates]
-                    dataset['location']['coordinates'] = [coordinates]
-                    # do this once only
-                    need_swath_poly = False
-
-            #udpate the tiles
-            metadata.update(tile_md)
-
-        # move browsefile to proddir
-        browse_files = sorted(glob.glob(os.path.join(raw_dir, '*browse*.png')))
-        for fn in browse_files:
-            shutil.move(fn, proddir)
-
-        # move main zip file as dataset to proddir
-        archive_filename = "{}/{}.zip".format(proddir,proddir)
-        shutil.move(sec_zip_file[0], archive_filename)
-        metadata["archive_filename"] = os.path.basename(archive_filename)
-        metadata['download_source'] = download_source
+        check_path_num(metadata, path_number)
 
         # dump metadata
         with open(os.path.join(proddir, dataset_name + ".met.json"), "w") as f:
@@ -454,6 +459,7 @@ def ingest_alos2(download_source, file_type, path_number=None):
             json.dump(dataset, f, indent=2)
             f.close()
 
+        #cleanup
         shutil.rmtree(sec_zip_dir, ignore_errors=True)
         # retaining primary zip, we can delete it if we want
         # os.remove(pri_zip_path)
@@ -502,7 +508,7 @@ if __name__ == "__main__":
             args.path_number_to_check=ctx["path_number_to_check"]
 
         if args.download_url:
-            download(args.download_url, args.oauth_url)
+            # download(args.download_url, args.oauth_url)
             download_source = args.download_url
         elif args.order_id:
             auig2.download(args)

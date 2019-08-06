@@ -51,7 +51,7 @@
     {
       "ipath": "ariamh::data/ALOS2-L1.1_SLC",
       "level": "l1.1",
-      "type": "slc",
+      "type": "alos2_slc",
       "match_pattern": "/ALOS2(?P<misc>\\d{9})-(?P<year>\\d{2})(?P<month>\\d{2})(?P<day>\\d{2})(?P<misc2>.{5})1.1(?P<misc3>.{3})$",
       "alt_match_pattern": null,
       "extractor": null,
