@@ -13,9 +13,9 @@
     "change_detection-job_worker-small",
     "urgent_response-job_worker-small"
   ],
-  "disk_usage": "50GB",
-  "soft_time_limit": 28800,
-  "time_limit": 30000,
+  "disk_usage": "200GB",
+  "soft_time_limit": 36000,
+  "time_limit": 40000,
   "params" : [
     {
       "name": "download_url",

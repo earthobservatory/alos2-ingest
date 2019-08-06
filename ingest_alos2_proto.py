@@ -54,13 +54,13 @@ def verify(path, file_type):
     """Verify downloaded file is okay by checking that it can
        be unzipped/untarred."""
 
-    test_dir = "./extract_test"
     if file_type in ZIP_TYPE:
         if not zipfile.is_zipfile(path):
             raise RuntimeError("%s is not a zipfile." % path)
         with zipfile.ZipFile(path, 'r') as f:
-            f.extractall(test_dir)
-        shutil.rmtree(test_dir, ignore_errors=True)
+            ret = f.testzip()
+            if ret:
+                raise RuntimeError("%s is corrupt. Test zip returns: %s" % (path, ret))
     else:
         raise NotImplementedError("Failed to verify %s is file type %s." % \
                                   (path, file_type))
@@ -90,6 +90,7 @@ def download(download_url, oauth_url):
 def md_frm_dataset_name(metadata, dataset_name):
     metadata['prod_name'] = dataset_name
     metadata['spacecraftName'] = dataset_name[0:5]
+    metadata['platform'] = metadata['spacecraftName']
     metadata['dataset_type'] = dataset_name[0:5]
     metadata['orbitNumber'] = int(dataset_name[5:10])
     metadata['frameID'] = int(dataset_name[10:14])
@@ -307,6 +308,9 @@ def create_product_browse(file):
     if "tif" in file:
         # tiff files are huge, our options need to resize them
         options_string += ' -outsize 10% 10%'
+    elif "WBD" in file:
+        # scansar L1.1 images have 1:7 aspect ratio
+        options_string += ' -outsize 100% 40%'
 
     logging.info("Creating browse png from %s" % file)
     out_file = os.path.splitext(file)[0] + '.browse.png'

@@ -109,8 +109,9 @@ def download(inps):
             count += 1
             chunk = f.read(CHUNK)
             if not chunk: break
-            print "Writing chunk %s: %s Bytes " % (count, str(count * CHUNK))
             fp.write(chunk)
+            if not count % 20:
+                print "Wrote %s chunks: %s MB " % (count, str(count * CHUNK / (1024 * 1024)))
     f.close()
     total_time = time.time() - start
     mb_sec = (os.path.getsize(filename) / (1024 * 1024.0)) / total_time
