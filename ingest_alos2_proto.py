@@ -318,8 +318,8 @@ def create_product_browse(file):
     os.system("convert -resize 250x250 %s %s" % (out_file, out_file_small))
     return
 
-def productize(dataset_name, raw_dir, zip_file, download_source):
-    is_l11 = ALOS2_L11 in dataset_name
+
+def create_product_base(raw_dir, dataset_name, is_l11):
     metadata = create_metadata(raw_dir, dataset_name, is_l11)
 
     # create dataset.json
@@ -329,6 +329,13 @@ def productize(dataset_name, raw_dir, zip_file, download_source):
     proddir = os.path.join(".", dataset_name)
     if not os.path.exists(proddir):
         os.makedirs(proddir)
+
+    return metadata, dataset, proddir
+
+
+def productize(dataset_name, raw_dir, zip_file, download_source):
+    is_l11 = ALOS2_L11 in dataset_name
+    metadata, dataset, proddir = create_product_base(raw_dir, dataset_name, is_l11)
 
     if is_l11:
         # create browse only for L1.1 data (if available)
