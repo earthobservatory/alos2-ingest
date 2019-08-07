@@ -26,7 +26,7 @@ def cmdLineParse():
     '''
 
     parser = argparse.ArgumentParser( description='Getting ALOS-2 data in gekko into ARIA')
-    parser.add_argument('-dir', dest='directory', type=str, default='',
+    parser.add_argument('-dir', dest='dir', type=str, default='',
             help = 'directory to search ALOS2 files')
     parser.add_argument('-date', dest='date', type=str, default='',
             help = 'date of ALOS2 files in YYMMDD format')
