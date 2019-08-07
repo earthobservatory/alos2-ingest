@@ -3,9 +3,7 @@ import glob
 import os
 from subprocess import check_call, check_output
 import pickle
-import isce
 import argparse
-from contrib.frameUtils.FrameInfoExtractor import FrameInfoExtractor
 import datetime
 import json
 import re
@@ -47,6 +45,7 @@ def create_scene_xml(led_filename,img_filename):
 
 
 def get_alos2_obj(dir_name):
+    import isce
     insar_obj = None
     dataset_name = None
     led_file = sorted(glob.glob(os.path.join(dir_name, 'LED*')))
@@ -64,6 +63,7 @@ def get_alos2_obj(dir_name):
 
 
 def create_alos2_md_isce(insar_obj, filename):
+    from contrib.frameUtils.FrameInfoExtractor import FrameInfoExtractor
     FIE = FrameInfoExtractor()
     masterInfo = FIE.extractInfoFromFrame(insar_obj.frame)
     md = {}
