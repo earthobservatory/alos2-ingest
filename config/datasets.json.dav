@@ -1,0 +1,100 @@
+{
+  "datasets": [
+    {
+      "ipath": "ariamh::data/ALOS2_GeoTIFF",
+      "level": "l1.5",
+      "type": "L1.5_geotiff",
+      "match_pattern": "/ALOS2(?P<misc>\\d{9})-(?P<year>\\d{2})(?P<month>\\d{2})(?P<day>\\d{2})(?P<misc2>.{5})1.5(?P<misc3>.{3})$",
+      "alt_match_pattern": null,
+      "extractor": null,
+      "publish": {
+        "davs-profile-name": "default",
+        "location": "davs://{{ DAV_USER }}:{{ DAV_PASSWORD }}@{{ DAV_SERVER }}/datasets/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.5{misc3}",
+        "urls": [
+          "http://{{ DAV_SERVER }}/datasets/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.5{misc3}",
+          "davs://{{ DAV_USER }}:{{ DAV_PASSWORD }}@{{ DAV_SERVER }}/datasets/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.5{misc3}"
+        ]
+      },
+      "browse": {
+        "davs-profile-name": "default",
+        "location": "davs://{{ DAV_USER }}:{{ DAV_PASSWORD }}@{{ DAV_SERVER }}/browse/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.5{misc3}",
+        "urls": [
+          "http://{{ DAV_SERVER }}/browse/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.5{misc3}",
+          "davs://{{ DAV_USER }}:{{ DAV_PASSWORD }}@{{ DAV_SERVER }}/browse/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.5{misc3}"
+        ]
+      }
+    },
+    {
+      "ipath": "ariamh::data/ALOS2_GeoTIFF",
+      "level": "l2.1",
+      "type": "L2.1_geotiff",
+      "match_pattern": "/ALOS2(?P<misc>\\d{9})-(?P<year>\\d{2})(?P<month>\\d{2})(?P<day>\\d{2})(?P<misc2>.{5})2.1(?P<misc3>.{3})$",
+      "alt_match_pattern": null,
+      "extractor": null,
+      "publish": {
+        "davs-profile-name": "default",
+        "location": "davs://{{ DAV_USER }}:{{ DAV_PASSWORD }}@{{ DAV_SERVER }}/datasets/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}2.1{misc3}",
+        "urls": [
+          "http://{{ DAV_SERVER }}/datasets/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}2.1{misc3}",
+          "davs://{{ DAV_USER }}:{{ DAV_PASSWORD }}@{{ DAV_SERVER }}/datasets/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}2.1{misc3}"
+        ]
+      },
+      "browse": {
+        "davs-profile-name": "default",
+        "location": "davs://{{ DAV_USER }}:{{ DAV_PASSWORD }}@{{ DAV_SERVER }}/browse/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}2.1{misc3}",
+        "urls": [
+          "http://{{ DAV_SERVER }}/browse/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}2.1{misc3}",
+          "davs://{{ DAV_USER }}:{{ DAV_PASSWORD }}@{{ DAV_SERVER }}/browse/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}2.1{misc3}"
+        ]
+      }
+    },
+    {
+      "ipath": "ariamh::data/ALOS2-L1.1_SLC",
+      "level": "l1.1",
+      "type": "alos2_slc",
+      "match_pattern": "/ALOS2(?P<misc>\\d{9})-(?P<year>\\d{2})(?P<month>\\d{2})(?P<day>\\d{2})(?P<misc2>.{5})1.1(?P<misc3>.{3})$",
+      "alt_match_pattern": null,
+      "extractor": null,
+      "publish": {
+        "davs-profile-name": "default",
+        "location": "davs://{{ DAV_USER }}:{{ DAV_PASSWORD }}@{{ DAV_SERVER }}/datasets/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.1{misc3}",
+        "urls": [
+          "http://{{ DAV_SERVER }}/datasets/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.1{misc3}",
+          "davs://{{ DAV_USER }}:{{ DAV_PASSWORD }}@{{ DAV_SERVER }}/datasets/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.1{misc3}"
+        ]
+      },
+      "browse": {
+        "davs-profile-name": "default",
+        "location": "davs://{{ DAV_USER }}:{{ DAV_PASSWORD }}@{{ DAV_SERVER }}/browse/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.1{misc3}",
+        "urls": [
+          "http://{{ DAV_SERVER }}/browse/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.1{misc3}",
+          "davs://{{ DAV_USER }}:{{ DAV_PASSWORD }}@{{ DAV_SERVER }}/browse/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.1{misc3}"
+        ]
+      }
+    },
+    {
+      "ipath": "ariamh::data/ALOS2-L1.1_SLC-MD",
+      "level": "l1.1",
+      "type": "alos2_slc_md",
+      "match_pattern": "/ALOS2(?P<misc>\\d{9})-(?P<year>\\d{2})(?P<month>\\d{2})(?P<day>\\d{2})(?P<misc2>.{5})1.1(?P<misc3>.{3})$",
+      "alt_match_pattern": null,
+      "extractor": null,
+      "publish": {
+        "davs-profile-name": "default",
+        "location": "davs://{{ DAV_USER }}:{{ DAV_PASSWORD }}@{{ DAV_SERVER }}/datasets/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.1{misc3}",
+        "urls": [
+          "http://{{ DAV_SERVER }}/datasets/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.1{misc3}",
+          "davs://{{ DAV_USER }}:{{ DAV_PASSWORD }}@{{ DAV_SERVER }}/datasets/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.1{misc3}"
+        ]
+      },
+      "browse": {
+        "davs-profile-name": "default",
+        "location": "davs://{{ DAV_USER }}:{{ DAV_PASSWORD }}@{{ DAV_SERVER }}/browse/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.1{misc3}",
+        "urls": [
+          "http://{{ DAV_SERVER }}/browse/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.1{misc3}",
+          "davs://{{ DAV_USER }}:{{ DAV_PASSWORD }}@{{ DAV_SERVER }}/browse/{type}/{version}/20{year}/{month}/{day}/ALOS2{misc}-{year}{month}{day}{misc2}1.1{misc3}"
+        ]
+      }
+    }
+  ]
+}

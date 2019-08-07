@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 Ingest ALOS2 data from a source to a destination:
 
@@ -9,15 +9,13 @@ Ingest ALOS2 data from a source to a destination:
 
 HTTP/HTTPS, FTP and OAuth authentication is handled using .netrc.
 """
-
-import datetime, os, sys, re, requests, json, logging, traceback, argparse, shutil, glob
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
-from requests.packages.urllib3.exceptions import InsecurePlatformWarning
-import ingest_alos2_proto
-
-# disable warnings for SSL verification
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-requests.packages.urllib3.disable_warnings(InsecurePlatformWarning)
+import alos2_utils
+import logging
+import glob
+import os
+import json
+import argparse
+import traceback
 
 log_format = "[%(asctime)s: %(levelname)s/%(funcName)s] %(message)s"
 logging.basicConfig(format=log_format, level=logging.INFO)
@@ -46,9 +44,9 @@ if __name__ == "__main__":
 
         os.chdir(temp_dir)
         raw_dir = "."
-        dataset_name = ingest_alos2_proto.extract_dataset_name(raw_dir) + "-md"
-        is_l11 = ingest_alos2_proto.ALOS2_L11 in dataset_name
-        metadata, dataset, proddir = ingest_alos2_proto.create_product_base(raw_dir, dataset_name, is_l11)
+        dataset_name = alos2_utils.extract_dataset_name(raw_dir) + "-md"
+        is_l11 = alos2_utils.ALOS2_L11 in dataset_name
+        metadata, dataset, proddir = alos2_utils.create_product_base(raw_dir, dataset_name, is_l11)
 
         # add metadata
         metadata["gekko_archive_files"] = data_files
