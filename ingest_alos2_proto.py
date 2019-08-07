@@ -48,6 +48,8 @@ ALL_TYPES.extend(ZIP_TYPE)
 # scale range
 SCALE_RANGE=[0, 7500]
 
+ALOS2_L11 = "1.1"
+
 
 def verify_and_extract(zip_file, file_type):
     """Verify downloaded file is okay by checking that it can
@@ -170,14 +172,14 @@ def md_frm_extractor(alos2_dir, metadata):
     return metadata
 
 
-def create_metadata(alos2_dir, dataset_name):
+def create_metadata(alos2_dir, dataset_name, is_l11):
     # TODO: Some of these are hardcoded! Do we need them?
     metadata = {}
     metadata = md_frm_dataset_name(metadata, dataset_name)
     summary_file = os.path.join(alos2_dir, "summary.txt")
-    if os.path.exists(summary_file) and not "1.1" in dataset_name:
+    if os.path.exists(summary_file) and not is_l11:
         metadata = md_frm_summary(summary_file, metadata)
-    elif "1.1" in dataset_name:
+    elif is_l11:
         metadata = md_frm_extractor(alos2_dir, metadata)
     else:
         raise RuntimeError("Cannot recognise ALOS2 directory format!")
@@ -185,7 +187,7 @@ def create_metadata(alos2_dir, dataset_name):
     return metadata
 
 
-def create_dataset(metadata):
+def create_dataset(metadata, is_l11):
     logging.info("Extracting datasets from metadata")
     # get settings for dataset version
     settings_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -195,8 +197,9 @@ def create_dataset(metadata):
 
     # datasets.json
     # extract metadata for datasets
+    version = settings['ALOS2_SLC_VERSION'] if is_l11 else settings['ALOS2_GEOTIFF_VERSION']
     dataset = {
-        'version': settings['ALOS2_INGEST_VERSION'],
+        'version': version,
         'label': metadata['prod_name'],
         'starttime': metadata['starttime'],
         'endtime': metadata['endtime']
@@ -316,11 +319,11 @@ def create_product_browse(file):
     return
 
 def productize(dataset_name, raw_dir, zip_file, download_source):
-    metadata = create_metadata(raw_dir, dataset_name)
-    is_l11 = "1.1" in dataset_name
+    is_l11 = ALOS2_L11 in dataset_name
+    metadata = create_metadata(raw_dir, dataset_name, is_l11)
 
     # create dataset.json
-    dataset = create_dataset(metadata)
+    dataset = create_dataset(metadata, is_l11)
 
     # create the product directory
     proddir = os.path.join(".", dataset_name)
