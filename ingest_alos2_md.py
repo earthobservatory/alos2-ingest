@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
     try:
         data_files = sorted(glob.glob(os.path.join(args.dir, '*{}*'.format(args.date))))
-        temp_dir = "tmp_" + args.date + "_" +int(time.time())
+        temp_dir = "tmp_{}_{}".format(args.date, int(time.time()))
         os.makedirs(temp_dir)
         for f in data_files:
             os.symlink(f, os.path.join(temp_dir, os.path.basename(f)))
