@@ -16,6 +16,7 @@ import os
 import json
 import argparse
 import traceback
+import subprocess as sp
 
 log_format = "[%(asctime)s: %(levelname)s/%(funcName)s] %(message)s"
 logging.basicConfig(format=log_format, level=logging.INFO)
@@ -30,6 +31,10 @@ def cmdLineParse():
             help = 'directory to search ALOS2 files')
     parser.add_argument('-date', dest='date', type=str, default='',
             help = 'date of ALOS2 files in YYMMDD format')
+    parser.add_argument('-dsfile', dest='ds_file', type=str, default='~/hysds/datasets.json',
+            help = 'datasets.json file for ingestion into ARIA')
+    parser.add_argument('-hysdsdir', dest='hysds_dir', type=str, default='~/hysds',
+                        help='directory of hysds repo where ingest_dataset.py is kept')
     return parser.parse_args()
 
 if __name__ == "__main__":
@@ -45,6 +50,7 @@ if __name__ == "__main__":
         os.chdir(temp_dir)
         raw_dir = "."
         dataset_name = alos2_utils.extract_dataset_name(raw_dir) + "-md"
+        logging.info("Creating metadata for {}.".format(dataset_name))
         is_l11 = alos2_utils.ALOS2_L11 in dataset_name
         metadata, dataset, proddir = alos2_utils.create_product_base(raw_dir, dataset_name, is_l11)
 
@@ -63,8 +69,13 @@ if __name__ == "__main__":
 
         os.chdir("..")
         #ingest
+        ingest_script = os.path.join(args.hysds_dir, "scripts/ingest_dataset.py")
+        logging.info("Ingesting {} into ARIA.".format(proddir))
+        sp.check_call("{} {}/{} {}".format(ingest_script,temp_dir,proddir, args.ds_file), shell=True)
 
         #cleanup
+        logging.info("Ingestion of {} complete. Cleaning up {} directory.".format(proddir,temp_dir))
+        os.remove(temp_dir)
 
     except Exception as e:
         with open('_alt_error.txt', 'a') as f:
