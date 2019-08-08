@@ -9,7 +9,7 @@ import StringIO
 import osaka.main
 import datetime, os, json, logging, traceback
 from subprocess import check_call
-
+import glob
 # all file types
 ALL_TYPES = []
 # zip types
