@@ -2,7 +2,7 @@
 import logging
 import os
 import traceback
-
+import re
 import zipfile
 import ConfigParser
 import StringIO
