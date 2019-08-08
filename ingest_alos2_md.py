@@ -17,6 +17,7 @@ import json
 import argparse
 import traceback
 import subprocess as sp
+import time
 
 log_format = "[%(asctime)s: %(levelname)s/%(funcName)s] %(message)s"
 logging.basicConfig(format=log_format, level=logging.INFO)
@@ -42,8 +43,8 @@ if __name__ == "__main__":
 
     try:
         data_files = sorted(glob.glob(os.path.join(args.dir, '*{}*'.format(args.date))))
-        temp_dir = args.date
-        os.makedirs(temp_dir, exist_ok=True)
+        temp_dir = "tmp_" + args.date + "_" +int(time.time())
+        os.makedirs(temp_dir)
         for f in data_files:
             os.symlink(f, os.path.join(temp_dir, os.path.basename(f)))
 
