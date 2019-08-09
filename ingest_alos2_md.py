@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 """
-Ingest ALOS2 data from a source to a destination:
+Ingest ALOS2 METADATA into ARIA-SG-NTU GRQ from ALOS2 raw data (extracted zip files) with:
 
-  1) download data from a source and verify,
-  2) extracts data and creates metadata
-  3) push data to repository
+  1) specific directory where ALOS2 raw is stored
+  2) date of data
+  3) ancillary information required for ingest_dataset.pu to work
 
-
-HTTP/HTTPS, FTP and OAuth authentication is handled using .netrc.
 """
 import alos2_utils
 import logging
@@ -18,6 +16,7 @@ import argparse
 import traceback
 import subprocess as sp
 import time
+import shutil
 
 log_format = "[%(asctime)s: %(levelname)s/%(funcName)s] %(message)s"
 logging.basicConfig(format=log_format, level=logging.INFO)
@@ -76,9 +75,10 @@ if __name__ == "__main__":
 
         #cleanup
         logging.info("Ingestion of {} complete. Cleaning up {} directory.".format(proddir,temp_dir))
-        os.remove(temp_dir)
+        shutil.rmtree(temp_dir)
 
     except Exception as e:
+        logging.warning("Ingestion might have failed. Check ARIA!")
         with open('_alt_error.txt', 'a') as f:
             f.write("%s\n" % str(e))
         with open('_alt_traceback.txt', 'a') as f:
