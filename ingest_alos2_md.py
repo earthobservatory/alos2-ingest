@@ -78,7 +78,7 @@ if __name__ == "__main__":
         shutil.rmtree(temp_dir)
 
     except Exception as e:
-        logging.warning("Ingestion might have failed. Check ARIA!")
+        logging.warning("Ingestion of {} with date:{} might have failed. Check ARIA!".format(args.dir,args.date))
         with open('_alt_error.txt', 'a') as f:
             f.write("%s\n" % str(e))
         with open('_alt_traceback.txt', 'a') as f:

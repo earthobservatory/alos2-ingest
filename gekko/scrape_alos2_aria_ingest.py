@@ -31,6 +31,7 @@ if __name__ == "__main__":
             dates_unique = list(dates_unique)
 
             for date in dates_unique:
+                logging.info("submitting job for {} date: {}".format(root,date))
                 sp.check_call("qsub {} -v dir={},date={}".format(args.pbsfile,root,date),shell=True)
 
 
