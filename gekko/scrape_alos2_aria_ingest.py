@@ -37,6 +37,7 @@ if __name__ == "__main__":
 
             dates_unique = set(dates)
             dates_unique = list(dates_unique)
+            logging.info("Dates: {}".format(dates_unique))
 
             for date in dates_unique:
                 folder_struct = re.search(regex, root)
