@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import os
-import logging
 import argparse
 import re
 import subprocess as sp
@@ -21,6 +20,7 @@ def cmdLineParse():
 
 if __name__ == "__main__":
     args = cmdLineParse()
+
     if not args.regex:
         # match anything
         regex = ".*"
@@ -37,12 +37,12 @@ if __name__ == "__main__":
 
             dates_unique = set(dates)
             dates_unique = list(dates_unique)
-            logging.info("Dates: {}".format(dates_unique))
+            print("Dates: {}".format(dates_unique))
 
             for date in dates_unique:
                 folder_struct = re.search(regex, root)
                 if folder_struct:
-                    logging.info("submitting job for {} date: {}".format(root,date))
+                    print("submitting job for {} date: {}".format(root,date))
                     sp.check_call("qsub {} -v dir={},date={}".format(args.pbsfile,root,date),shell=True)
 
 
