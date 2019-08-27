@@ -12,7 +12,6 @@ module load anaconda/3
 source ~/venv2/bin/activate
 
 cd $PBS_O_WORKDIR
-dir_text=$(echo $dir | sed -r 's/\//\_/g')
 mkdir -p ./log
-python ~/alos2-ingest/ingest_alos2_md.py -dir $dir  -date $date > ./log/${dir_text}_${date}.log 2>&1
+python ~/alos2-ingest/ingest_alos2_md.py -dir $dir  -date $fdate > ./log/${fdate}.log 2>&1
 

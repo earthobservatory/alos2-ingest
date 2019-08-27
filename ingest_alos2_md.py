@@ -31,8 +31,8 @@ def cmdLineParse():
     parser = argparse.ArgumentParser( description='Getting ALOS-2 data in gekko into ARIA')
     parser.add_argument('-dir', dest='dir', type=str, default='',
             help = 'directory to search ALOS2 files')
-    parser.add_argument('-date', dest='date', type=str, default='',
-            help = 'date of ALOS2 files in YYMMDD format')
+    parser.add_argument('-fdate', dest='fdate', type=str, default='',
+            help = 'frame and date of ALOS2 files in FFFF_YYMMDD format')
     parser.add_argument('-dsfile', dest='ds_file', type=str, default='~/hysds/datasets.json',
             help = 'datasets.json file for ingestion into ARIA')
     parser.add_argument('-hysdsdir', dest='hysds_dir', type=str, default='~/hysds',
@@ -76,8 +76,8 @@ if __name__ == "__main__":
     grq_es_url = app.conf['GRQ_ES_URL']
 
     try:
-        data_files = sorted(glob.glob(os.path.join(args.dir, '*{}*'.format(args.date))))
-        temp_dir = "tmp_{}_{}".format(args.dir.replace("/", "_"),args.date)
+        data_files = sorted(glob.glob(os.path.join(args.dir, '*{}*'.format(args.fdate))))
+        temp_dir = "tmp_{}_{}".format(args.fdate,time.time())
         os.makedirs(temp_dir)
         for f in data_files:
             os.symlink(f, os.path.join(temp_dir, os.path.basename(f)))
@@ -123,7 +123,7 @@ if __name__ == "__main__":
             shutil.rmtree(temp_dir)
 
     except Exception as e:
-        logging.warning("Ingestion of {} with date:{} might have failed. Check ARIA!".format(args.dir,args.date))
+        logging.warning("Ingestion of {} with frame_date:{} might have failed. Check ARIA!".format(args.dir,args.fdate))
         with open('_alt_error.txt', 'a') as f:
             f.write("%s\n" % str(e))
         with open('_alt_traceback.txt', 'a') as f:

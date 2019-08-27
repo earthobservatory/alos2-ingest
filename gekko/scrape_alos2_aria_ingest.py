@@ -30,25 +30,22 @@ if __name__ == "__main__":
 
     for root, subFolders, files in os.walk(args.dir):
         if files:
-            dates=[]
+            fdates=[]
             for x in files:
-                m = re.search("IMG-[A-Z]{2}-ALOS2.{09}-(\d{6})-.{4}1.1.*", x)
+                m = re.search("IMG-[A-Z]{2}-ALOS2.{05}(.{04}-\d{6})-.{4}1.1.*", x)
                 if m:
-                    dates.append(m.group(1))
+                    fdates.append(m.group(1))
 
-            dates_unique = set(dates)
-            dates_unique = list(dates_unique)
-            print("Dates: {}".format(dates_unique))
+            fdates_unique = set(fdates)
+            fdates_unique = list(fdates_unique)
+            print("Frame Dates: {}".format(fdates_unique))
 
-            for date in dates_unique:
+            for fdate in fdates_unique:
                 folder_struct = re.search(regex, root)
 
-
                 if folder_struct:
-                    name = "{}/{}".format(root,date)
-                    name = name.replace("/", "_")
-                    print("submitting job for root,{} date,{}: {}".format(root,date, name))
-                    sp.check_call("qsub {} -v dir={},date={} -N {} ".format(args.pbsfile,root,date,name),shell=True)
+                    print("submitting job for root:{} frame_date:{}}".format(root,fdate))
+                    sp.check_call("qsub {} -v dir={},fdate={} -N {} ".format(args.pbsfile,root,fdate,fdate),shell=True)
 
 
         # ignore root and subFolders
