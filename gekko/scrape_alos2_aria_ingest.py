@@ -44,7 +44,7 @@ if __name__ == "__main__":
                 folder_struct = re.search(regex, root)
 
                 if folder_struct:
-                    print("submitting job for root:{} frame_date:{}}".format(root,fdate))
+                    print("submitting job for root:{} frame_date:{}".format(root,fdate))
                     sp.check_call("qsub {} -v dir={},fdate={} -N {} ".format(args.pbsfile,root,fdate,fdate),shell=True)
 
 
