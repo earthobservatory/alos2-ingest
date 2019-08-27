@@ -45,8 +45,9 @@ if __name__ == "__main__":
 
 
                 if folder_struct:
-                    print("submitting job for {} date: {}".format(root,date))
-                    sp.check_call("qsub {} -v dir={},date={}".format(args.pbsfile,root,date),shell=True)
+                    name = "{}/{}".format(root,date)
+                    print("submitting job for root,{} date,{}: {}".format(root,date, name))
+                    sp.check_call("qsub {} -v dir={},date={} -N {} ".format(args.pbsfile,root,date,name),shell=True)
 
 
         # ignore root and subFolders
