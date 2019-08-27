@@ -13,5 +13,5 @@ source ~/venv2/bin/activate
 
 cd $PBS_O_WORKDIR
 mkdir -p ./log
-python ~/alos2-ingest/ingest_alos2_md.py -dir $dir  -date $fdate > ./log/${fdate}.log 2>&1
+python ~/alos2-ingest/ingest_alos2_md.py -dir $dir  -fdate $fdate > ./log/${fdate}.log 2>&1
 
