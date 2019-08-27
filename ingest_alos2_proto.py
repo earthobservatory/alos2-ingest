@@ -216,20 +216,20 @@ def ingest_alos2(download_source, file_type, path_number=None):
     """Download file, push to repo and submit job for extraction."""
 
     pri_zip_paths = glob.glob('*.zip')
-
+    sec_zip_files = []
     for pri_zip_path in pri_zip_paths:
         # verify downloaded file was not corrupted
         logging.info("Verifying %s is file type %s." % (pri_zip_path, file_type))
         try:
             sec_zip_dir = alos2_utils.verify_and_extract(pri_zip_path, file_type)
+            logging.info("seec zip dir: %s" % sec_zip_dir)
 
             # unzip the second layer to gather metadata
-            sec_zip_file = glob.glob(os.path.join(sec_zip_dir,'*.zip'))
-            if not len(sec_zip_file) == 1:
-                raise RuntimeError("Unable to find second zipfile under %s" % sec_zip_dir)
+            sec_zip_files = glob.glob(os.path.join(sec_zip_dir,'*.zip'))
+            logging.info("glob dir: %s" % os.path.join(sec_zip_dir,'*.zip'))
 
-            logging.info("Verifying %s is file type %s." % (sec_zip_file[0], file_type))
-            raw_dir = alos2_utils.verify_and_extract(sec_zip_file[0], file_type)
+            if not len(sec_zip_files) > 0:
+                raise RuntimeError("Unable to find second zipfiles under %s" % sec_zip_dir)
 
         except Exception as e:
             tb = traceback.format_exc()
@@ -237,11 +237,15 @@ def ingest_alos2(download_source, file_type, path_number=None):
                           (file_type, tb))
             raise
 
+    for sec_zip_file in sec_zip_files:
+        logging.info("Verifying %s is file type %s." % (sec_zip_file, file_type))
+        raw_dir = alos2_utils.verify_and_extract(sec_zip_file, file_type)
+
         # get the datasetname from IMG files in raw_dir
         dataset_name = alos2_utils.extract_dataset_name(raw_dir)
 
         # productize our extracted data
-        metadata, dataset, proddir = productize(dataset_name, raw_dir, sec_zip_file[0], download_source)
+        metadata, dataset, proddir = productize(dataset_name, raw_dir, sec_zip_file, download_source)
 
         #checks path number formulation:
         alos2_utils.check_path_num(metadata, path_number)
@@ -256,10 +260,10 @@ def ingest_alos2(download_source, file_type, path_number=None):
             json.dump(dataset, f, indent=2)
             f.close()
 
-        #cleanup
-        shutil.rmtree(sec_zip_dir, ignore_errors=True)
-        # retaining primary zip, we can delete it if we want
-        # os.remove(pri_zip_path)
+    #cleanup
+    shutil.rmtree(sec_zip_dir, ignore_errors=True)
+    # retaining primary zip, we can delete it if we want
+    # os.remove(pri_zip_path)
 
 def load_context():
     with open('_context.json') as data_file:
@@ -308,7 +312,7 @@ if __name__ == "__main__":
             alos2_utils.download(args.download_url, args.oauth_url)
             download_source = args.download_url
         elif args.order_id:
-            auig2.download(args)
+            # auig2.download(args)
             download_source = "UN:%s_OrderID:%s"
         else:
             raise RuntimeError("Unable to do anything. Download parameters not defined. "
