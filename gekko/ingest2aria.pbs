@@ -10,7 +10,9 @@ module purge
 deactivate
 module load anaconda/3  
 source ~/venv2/bin/activate
+mkdir -p log
 
 cd $PBS_O_WORKDIR
-python ~/alos2-ingest/ingest_alos2_md.py -dir $dir  -date $date
+dir_text = echo $dir | sed -r 's/\//\_/g'
+python ~/alos2-ingest/ingest_alos2_md.py -dir $dir  -date $date > ./log/{$dir_text}_{$date}.log 2>&1
 
