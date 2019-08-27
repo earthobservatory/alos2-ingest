@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
                 if folder_struct:
                     name = "{}/{}".format(root,date)
-                    name.replace("/", "_")
+                    name = name.replace("\/", "_")
                     print("submitting job for root,{} date,{}: {}".format(root,date, name))
                     sp.check_call("qsub {} -v dir={},date={} -N {} ".format(args.pbsfile,root,date,name),shell=True)
 
