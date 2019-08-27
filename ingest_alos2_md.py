@@ -92,6 +92,7 @@ if __name__ == "__main__":
         if total > 0:
             logging.info("Not ingesting {} as it is present in GRQ as {}.".format(dataset_name, id))
             logging.info("Cleaning up {} directory.".format(temp_dir))
+            os.chdir("..")
             shutil.rmtree(temp_dir)
         else:
             logging.info("Creating metadata for {}.".format(dataset_name))
