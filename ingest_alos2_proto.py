@@ -16,7 +16,7 @@ from requests.packages.urllib3.exceptions import InsecurePlatformWarning
 # import boto
 import numpy as np
 import scipy.spatial
-from osgeo import gdal
+from osgeo import gdal, osr
 import alos2_utils
 from subprocess import check_call
 import scripts.auig2_download as auig2
@@ -38,65 +38,128 @@ def gdal_translate(outfile, infile, options_string):
     logging.info("cmd: %s" % cmd)
     return check_call(cmd,  shell=True)
 
-def get_bounding_polygon(vrt_file):
-    '''
-    Get the minimum bounding region
-    @param path - path to h5 file from which to read TS data
-    '''
-    ds = gdal.Open(vrt_file)
-    #Read out the first data frame, lats vector and lons vector.
-    data = np.array(ds.GetRasterBand(1).ReadAsArray())
-    logging.info("Array size of data {}".format(data.shape))
-    lats, lons = get_geocoded_coords(vrt_file)
-    logging.info("Array size of lats {}".format(lats.shape))
-    logging.info("Array size of lons {}".format(lons.shape))
+# def get_bounding_polygon(vrt_file):
+#     '''
+#     Get the minimum bounding region
+#     @param path - path to h5 file from which to read TS data
+#     '''
+#     ds = gdal.Open(vrt_file)
+#     #Read out the first data frame, lats vector and lons vector.
+#     data = np.array(ds.GetRasterBand(1).ReadAsArray())
+#     logging.info("Array size of data {}".format(data.shape))
+#     lats, lons = get_geocoded_coords(vrt_file)
+#     logging.info("Array size of lats {}".format(lats.shape))
+#     logging.info("Array size of lons {}".format(lons.shape))
+#
+#     #Create a grid of lon, lat pairs
+#     coords = np.dstack(np.meshgrid(lons,lats))
+#     #Calculate any point in the data that is not 0, and grab the coordinates
+#     inx = np.nonzero(data)
+#     points = coords[inx]
+#     #Calculate the convex-hull of the data points.  This will be a mimimum
+#     #bounding convex-polygon.
+#     hull = scipy.spatial.ConvexHull(points)
+#     #Harvest the points and make it a loop
+#     pts = [list(pt) for pt in hull.points[hull.vertices]]
+#     logging.info("Number of vertices: {}".format(len(pts)))
+#     pts.append(pts[0])
+#     return pts
 
-    #Create a grid of lon, lat pairs
-    coords = np.dstack(np.meshgrid(lons,lats))
-    #Calculate any point in the data that is not 0, and grab the coordinates
-    inx = np.nonzero(data)
-    points = coords[inx]
-    #Calculate the convex-hull of the data points.  This will be a mimimum
-    #bounding convex-polygon.
-    hull = scipy.spatial.ConvexHull(points)
-    #Harvest the points and make it a loop
-    pts = [list(pt) for pt in hull.points[hull.vertices]]
-    logging.info("Number of vertices: {}".format(len(pts)))
-    pts.append(pts[0])
-    return pts
 
-
-def get_geocoded_coords(vrt_file):
-    """Return geocoded coordinates of radar pixels."""
-    # extract geo-coded corner coordinates
-    ds = gdal.Open(vrt_file)
-    gt = ds.GetGeoTransform()
-    cols = ds.RasterXSize
-    rows = ds.RasterYSize
-    lon_arr = list(range(0, cols))
-    lat_arr = list(range(0, rows))
-    lons = np.empty((cols,))
-    lats = np.empty((rows,))
-    for py in lat_arr:
-        lats[py] = gt[3] + (py * gt[5])
-    for px in lon_arr:
-        lons[px] = gt[0] + (px * gt[1])
-    return lats, lons
+# def get_geocoded_coords(vrt_file):
+#     """Return geocoded coordinates of radar pixels."""
+#     # extract geo-coded corner coordinates
+#     ds = gdal.Open(vrt_file)
+#     gt = ds.GetGeoTransform()
+#     cols = ds.RasterXSize
+#     rows = ds.RasterYSize
+#     lon_arr = list(range(0, cols))
+#     lat_arr = list(range(0, rows))
+#     lons = np.empty((cols,))
+#     lats = np.empty((rows,))
+#     for py in lat_arr:
+#         lats[py] = gt[3] + (py * gt[5])
+#     for px in lon_arr:
+#         lons[px] = gt[0] + (px * gt[1])
+#     return lats, lons
 
 # ONLY FOR L2.1 which is Geo-coded (Map projection based on north-oriented map direction)
-def get_swath_polygon_coords(processed_tif):
-    """Get L2.1 actual polygon coordinates with convex hull"""
-    # create vrt file with wgs84 coordinates
-    file_basename = os.path.splitext(processed_tif)[0]
-    cmd = "gdalwarp -dstnodata 0 -dstalpha -of vrt -t_srs EPSG:4326 {} {}.vrt".format(processed_tif, file_basename)
-    logging.info("cmd: %s" % cmd)
-    check_call(cmd, shell=True)
+# def get_swath_polygon_coords(processed_tif):
+#     """Get L2.1 actual polygon coordinates with convex hull"""
+#     # create vrt file with wgs84 coordinates
+#     file_basename = os.path.splitext(processed_tif)[0]
+#     cmd = "gdalwarp -dstnodata 0 -dstalpha -of vrt -t_srs EPSG:4326 {} {}.vrt".format(processed_tif, file_basename)
+#     logging.info("cmd: %s" % cmd)
+#     check_call(cmd, shell=True)
+#
+#     logging.info('Getting polygon of satellite footprint swath.')
+#     polygon_coords = get_bounding_polygon("{}.vrt".format(file_basename))
+#     logging.info("Coordinates of subswath polygon: {}".format(polygon_coords))
+#
+#     return polygon_coords
 
-    logging.info('Getting polygon of satellite footprint swath.')
-    polygon_coords = get_bounding_polygon("{}.vrt".format(file_basename))
-    logging.info("Coordinates of subswath polygon: {}".format(polygon_coords))
+def checkProjectionWGS84(file):
+    # check if file is suited for KML (needs to be projected in WGS 84 / EPSG 4326
+    ds = gdal.Open(file)
+    prj = ds.GetProjection()
+    srs = osr.SpatialReference(wkt=prj)
+    if "WGS 84" not in srs.GetAttrValue('geogcs'):
+        vrt_file = "{}.vrt".format(os.path.splitext(file)[0])
+        check_call("gdalwarp -of VRT -t_srs EPSG:4326 -overwrite {} {}".format(file, vrt_file), shell=True)
+        ret_file = vrt_file
+    else:
+        ret_file = file
 
-    return polygon_coords
+    return ret_file
+
+def writeMask(out_file, arr, basefile):
+    rows = arr.shape[0]
+    cols = arr.shape[1]
+    # create the raster file
+    base_ds = gdal.Open(basefile)
+    srs = osr.SpatialReference()  # establish encoding
+    srs.ImportFromWkt(base_ds.GetProjectionRef())  # WGS84 lat/long
+    if arr.ndim == 2:
+        if arr.dtype == np.bool:
+            # only 1 band, logical
+            dst_ds = gdal.GetDriverByName('GTiff').Create(out_file, cols, rows, 1, gdal.GDT_Byte, options = ["NBITS=1", "COMPRESS=PACKBITS"])
+            band1  = dst_ds.GetRasterBand(1)
+            band1.WriteArray(arr)  # write band to the raster
+
+        else:
+            dst_ds = gdal.GetDriverByName('GTiff').Create(out_file, cols, rows, 1, gdal.GDT_Float32)
+            dst_ds.GetRasterBand(1).WriteArray(arr)
+            dst_ds.GetRasterBand(1).SetNoDataValue(0)
+
+        dst_ds.SetGeoTransform(base_ds.GetGeoTransform())  # specify coords
+        dst_ds.SetProjection(srs.ExportToWkt())  # export coords to file
+        dst_ds.FlushCache()  # write to disk
+
+
+def getFootprintJson(tif_file):
+    tif_file = checkProjectionWGS84(tif_file)
+    tmp_msk_file = os.path.join(os.path.dirname(os.path.abspath(tif_file)),"tmp_msk.tif")
+    tmp_msk_nodata_file = os.path.join(os.path.dirname(os.path.abspath(tif_file)),"tmp_msk_nodata.tif")
+    tmp_geojson = os.path.join(os.path.dirname(os.path.abspath(tif_file)),"tmp.json")
+    tmp_final_geojson = os.path.join(os.path.dirname(os.path.abspath(tif_file)),"tmp_final.json")
+
+    print('Getting footprint of %s ...' % tif_file)
+    ds = gdal.Open(tif_file)
+    file_arr = np.array(ds.GetRasterBand(1).ReadAsArray())  # assuming we only care about the base layer
+    footprint = file_arr != 0  # create radar footprint mask
+    writeMask(tmp_msk_file, footprint, tif_file)
+    print("Creating polygon for file: %s" % tmp_msk_file)
+    check_call("gdal_translate -a_nodata 0 {} {}".format(tmp_msk_file, tmp_msk_nodata_file), shell=True)
+    check_call("gdal_polygonize.py -f GeoJSON {} {}".format(tmp_msk_nodata_file, tmp_geojson), shell=True)
+    check_call("ogr2ogr -f GeoJSON -simplify 0.001 {} {}".format(tmp_final_geojson, tmp_geojson), shell=True)
+
+    with open(tmp_final_geojson) as data_file:
+        data = json.load(data_file)
+
+    for tmpfile in glob.glob(os.path.join(os.path.dirname(os.path.abspath(tif_file)),'tmp*')):
+        os.remove(tmpfile)
+
+    return data['features'][0]['geometry']['coordinates'][0]
 
 def process_geotiff_disp(infile):
     """Reprocess JAXA's L1./ L2.1 geotiff to include nodata = 0 for display"""
@@ -189,7 +252,7 @@ def productize(dataset_name, raw_dir, zip_file, download_source):
             # create_product_kmz(processed_tif_disp)
 
             if need_swath_poly:
-                coordinates = get_swath_polygon_coords(processed_tif_disp)
+                coordinates = getFootprintJson(processed_tif_disp)
                 # Override cooirdinates from summary.txt
                 metadata['location']['coordinates'] = [coordinates]
                 dataset['location']['coordinates'] = [coordinates]
