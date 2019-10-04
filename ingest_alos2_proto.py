@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Ingest ALOS2 data from a source to a destination:
 

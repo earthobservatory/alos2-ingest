@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 ###############################################################################
 #  auig2_download.py
 #
@@ -34,9 +34,9 @@ import os
 import sys
 import time
 import datetime
-import urllib
-import urllib2
-import cookielib
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
+import http.cookiejar
 import argparse
 
 
@@ -48,7 +48,7 @@ def loginToAUIG2(opener,inps):
     """
     Handle login. This should populate our cookie jar.
     """
-    login_data = urllib.urlencode({
+    login_data = urllib.parse.urlencode({
         'IDToken1' : inps.username,
         'IDToken2' : inps.password,
     })
@@ -76,14 +76,14 @@ auig2_download.py -o ORDER_ID
 def download(inps):
     ### OPEN A CONNECTION TO AUIG2 AND LOG IN ###
     cookie_filename = "cookie_%s.txt" % datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S")
-    cj = cookielib.MozillaCookieJar(cookie_filename)
+    cj = http.cookiejar.MozillaCookieJar(cookie_filename)
     if os.access(cookie_filename, os.F_OK):
         cj.load()
-    opener = urllib2.build_opener(
-        urllib2.HTTPRedirectHandler(),
-        urllib2.HTTPHandler(debuglevel=0),
-        urllib2.HTTPSHandler(debuglevel=0),
-        urllib2.HTTPCookieProcessor(cj)
+    opener = urllib.request.build_opener(
+        urllib.request.HTTPRedirectHandler(),
+        urllib.request.HTTPHandler(debuglevel=0),
+        urllib.request.HTTPSHandler(debuglevel=0),
+        urllib.request.HTTPCookieProcessor(cj)
     )
     opener.addheaders = [('User-agent', ('Mozilla/4.0 (compatible; MSIE 6.z0; ' 'Windows NT 5.2; .NET CLR 1.1.4322)'))]
     # need this twice - once to set cookies, once to log in...
@@ -94,14 +94,14 @@ def download(inps):
     url = "http://auig2.jaxa.jp/pp/service/download?downloadurl=/start/download/file&itemname=%s&itemtype=1" % inps.order_id
     f = opener.open(url)
     filename = f.headers['Content-Disposition'].split("=")[-1].strip()
-    print "ALOS-2 AUIG2 Download:", filename
+    print("ALOS-2 AUIG2 Download:", filename)
     start = time.time()
     CHUNK = 256 * 1024
     meta = f.info()
     filesize = ""
     if len(meta.getheaders("Content-Length")) > 1:
         filesize = meta.getheaders("Content-Length")[0]
-    print "Content-Length: %s" % filesize
+    print("Content-Length: %s" % filesize)
     count = 0
 
     with open(filename, 'wb') as fp:
@@ -111,12 +111,12 @@ def download(inps):
             if not chunk: break
             fp.write(chunk)
             if not count % 20:
-                print "Wrote %s chunks: %s MB " % (count, str(count * CHUNK / (1024 * 1024)))
+                print("Wrote %s chunks: %s MB " % (count, str(count * CHUNK / (1024 * 1024))))
     f.close()
     total_time = time.time() - start
     mb_sec = (os.path.getsize(filename) / (1024 * 1024.0)) / total_time
-    print "Speed: %s MB/s" % mb_sec
-    print "Total Time: %s s" % total_time
+    print("Speed: %s MB/s" % mb_sec)
+    print("Total Time: %s s" % total_time)
 
 if __name__ == '__main__':
     if len(sys.argv)==1:

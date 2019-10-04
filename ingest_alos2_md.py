@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Ingest ALOS2 METADATA into ARIA-SG-NTU GRQ from ALOS2 raw data (extracted zip files) with:
 
@@ -18,7 +18,6 @@ import subprocess as sp
 import time
 import shutil
 import requests
-from hysds.celery import app
 
 log_format = "[%(asctime)s: %(levelname)s/%(funcName)s] %(message)s"
 logging.basicConfig(format=log_format, level=logging.INFO)
@@ -37,6 +36,8 @@ def cmdLineParse():
             help = 'datasets.json file for ingestion into ARIA')
     parser.add_argument('-hysdsdir', dest='hysds_dir', type=str, default='~/hysds',
                         help='directory of hysds repo where ingest_dataset.py is kept')
+    parser.add_argument('-grq_es_url', dest='grq_es_url', type=str, default='',
+                        help='Specify GRQ ES url to ingest ALOS-2 metadata to. If not specified, will look into celeryconfig.py in hysdsdir')
     return parser.parse_args()
 
 def check_dataset(es_url, id, es_index="grq"):
@@ -73,7 +74,13 @@ def check_dataset(es_url, id, es_index="grq"):
 
 if __name__ == "__main__":
     args = cmdLineParse()
-    grq_es_url = app.conf['GRQ_ES_URL']
+
+    if args.grq_es_url:
+        grq_es_url = args.grq_es_url
+    else:
+        # if not specidied, run app.conf
+        grq_es_url = sp.check_output('python -c "from hysds.celery import app; print app.conf["GRQ_ES_URL"]"',
+                                     shell=True)
 
     try:
         data_files = sorted(glob.glob(os.path.join(args.dir, '*{}*'.format(args.fdate))))

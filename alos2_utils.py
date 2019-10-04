@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import re
 import zipfile
-import ConfigParser
-import StringIO
+import configparser
+import io
 import osaka.main
 import datetime, os, json, logging, traceback
 from subprocess import check_call
@@ -86,8 +86,8 @@ def md_frm_summary(summary_file, metadata):
         # need to add dummy section for config parse to read .properties file
         summary_string = '[%s]\n' % dummy_section + f.read()
     summary_string = summary_string.replace('"', '')
-    buf = StringIO.StringIO(summary_string)
-    config = ConfigParser.ConfigParser()
+    buf = io.StringIO(summary_string)
+    config = configparser.ConfigParser()
     config.readfp(buf)
 
     # parse the metadata from summary.txt
