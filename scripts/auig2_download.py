@@ -51,9 +51,9 @@ def loginToAUIG2(opener,inps):
     login_data = urllib.parse.urlencode({
         'IDToken1' : inps.username,
         'IDToken2' : inps.password,
-    })
+    }).encode("utf-8")
     response = opener.open(BASE_URL, login_data)
-    return ''.join(response.readlines())
+    return response.read().decode("utf-8")
 
 def parse():
     '''Command line parser.'''
@@ -97,10 +97,8 @@ def download(inps):
     print("ALOS-2 AUIG2 Download:", filename)
     start = time.time()
     CHUNK = 256 * 1024
-    meta = f.info()
-    filesize = ""
-    if len(meta.getheaders("Content-Length")) > 1:
-        filesize = meta.getheaders("Content-Length")[0]
+    # meta = f.info()
+    filesize = f.getheader("Content-Length")
     print("Content-Length: %s" % filesize)
     count = 0
 

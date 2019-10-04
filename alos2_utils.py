@@ -4,9 +4,10 @@ import re
 import zipfile
 import configparser
 import io
-import osaka.main
+#TODO: uncomment this later!
+# import osaka.main
 import datetime, os, json, logging, traceback
-from subprocess import check_call
+from subprocess import check_call, check_output
 import glob
 # all file types
 ALL_TYPES = []
@@ -16,12 +17,14 @@ ALL_TYPES.extend(ZIP_TYPE)
 ALOS2_L11 = "1.1"
 
 
-def download(download_url, oauth_url):
+def download(download_url):
     # download
     dest = os.path.basename(download_url)
     logging.info("Downloading %s to %s." % (download_url, dest))
     try:
-        osaka.main.get(download_url, dest, params={"oauth": oauth_url}, measure=True, output="./pge_metrics.json")
+        cmd = "python -c \'import osaka.main; osaka.main.get(\"%s\", \"%s\", params={\"oauth\": None}, measure=True, output=\"./pge_metrics.json\")\'" % (download_url, dest)
+        print(cmd)
+        check_output(cmd, shell=True)
     except Exception as e:
         tb = traceback.format_exc()
         logging.error("Failed to download %s to %s: %s" % (download_url,

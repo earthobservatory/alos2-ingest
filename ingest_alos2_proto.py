@@ -6,8 +6,6 @@ Ingest ALOS2 data from a source to a destination:
   2) extracts data and creates metadata
   3) push data to repository
 
-
-HTTP/HTTPS, FTP and OAuth authentication is handled using .netrc.
 """
 
 import os, re, requests, json, logging, traceback, argparse, shutil, glob
@@ -37,66 +35,6 @@ def gdal_translate(outfile, infile, options_string):
     cmd = "gdal_translate {} {} {}".format(options_string, infile, outfile)
     logging.info("cmd: %s" % cmd)
     return check_call(cmd,  shell=True)
-
-# def get_bounding_polygon(vrt_file):
-#     '''
-#     Get the minimum bounding region
-#     @param path - path to h5 file from which to read TS data
-#     '''
-#     ds = gdal.Open(vrt_file)
-#     #Read out the first data frame, lats vector and lons vector.
-#     data = np.array(ds.GetRasterBand(1).ReadAsArray())
-#     logging.info("Array size of data {}".format(data.shape))
-#     lats, lons = get_geocoded_coords(vrt_file)
-#     logging.info("Array size of lats {}".format(lats.shape))
-#     logging.info("Array size of lons {}".format(lons.shape))
-#
-#     #Create a grid of lon, lat pairs
-#     coords = np.dstack(np.meshgrid(lons,lats))
-#     #Calculate any point in the data that is not 0, and grab the coordinates
-#     inx = np.nonzero(data)
-#     points = coords[inx]
-#     #Calculate the convex-hull of the data points.  This will be a mimimum
-#     #bounding convex-polygon.
-#     hull = scipy.spatial.ConvexHull(points)
-#     #Harvest the points and make it a loop
-#     pts = [list(pt) for pt in hull.points[hull.vertices]]
-#     logging.info("Number of vertices: {}".format(len(pts)))
-#     pts.append(pts[0])
-#     return pts
-
-
-# def get_geocoded_coords(vrt_file):
-#     """Return geocoded coordinates of radar pixels."""
-#     # extract geo-coded corner coordinates
-#     ds = gdal.Open(vrt_file)
-#     gt = ds.GetGeoTransform()
-#     cols = ds.RasterXSize
-#     rows = ds.RasterYSize
-#     lon_arr = list(range(0, cols))
-#     lat_arr = list(range(0, rows))
-#     lons = np.empty((cols,))
-#     lats = np.empty((rows,))
-#     for py in lat_arr:
-#         lats[py] = gt[3] + (py * gt[5])
-#     for px in lon_arr:
-#         lons[px] = gt[0] + (px * gt[1])
-#     return lats, lons
-
-# ONLY FOR L2.1 which is Geo-coded (Map projection based on north-oriented map direction)
-# def get_swath_polygon_coords(processed_tif):
-#     """Get L2.1 actual polygon coordinates with convex hull"""
-#     # create vrt file with wgs84 coordinates
-#     file_basename = os.path.splitext(processed_tif)[0]
-#     cmd = "gdalwarp -dstnodata 0 -dstalpha -of vrt -t_srs EPSG:4326 {} {}.vrt".format(processed_tif, file_basename)
-#     logging.info("cmd: %s" % cmd)
-#     check_call(cmd, shell=True)
-#
-#     logging.info('Getting polygon of satellite footprint swath.')
-#     polygon_coords = get_bounding_polygon("{}.vrt".format(file_basename))
-#     logging.info("Coordinates of subswath polygon: {}".format(polygon_coords))
-#
-#     return polygon_coords
 
 def checkProjectionWGS84(file):
     # check if file is suited for KML (needs to be projected in WGS 84 / EPSG 4326
@@ -349,9 +287,6 @@ def cmdLineParse():
             help = 'Password from AUIG2 if available')
     parser.add_argument("--path_number_to_check", help="Path number provided from ALOS2 Ordering system to "
                                                      "check against empirical formulation.", required=False)
-    parser.add_argument("--oauth_url", help="OAuth authentication URL " +
-                                            "(credentials stored in " +
-                                            ".netrc)", required=False)
     parser.add_argument("--file_type", dest='file_type', help="download file type to verify", default='zip',
                         choices=alos2_utils.ALL_TYPES, required=False)
     return parser.parse_args()
@@ -372,10 +307,10 @@ if __name__ == "__main__":
             args.path_number_to_check=ctx["path_number_to_check"]
 
         if args.download_url:
-            alos2_utils.download(args.download_url, args.oauth_url)
+            alos2_utils.download(args.download_url)
             download_source = args.download_url
         elif args.order_id:
-            # auig2.download(args)
+            auig2.download(args)
             download_source = "UN:%s_OrderID:%s"
         else:
             raise RuntimeError("Unable to do anything. Download parameters not defined. "
