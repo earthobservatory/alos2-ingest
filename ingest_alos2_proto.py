@@ -17,7 +17,6 @@ import scipy.spatial
 from osgeo import gdal, osr
 import alos2_utils
 from subprocess import check_call
-import scripts.auig2_download as auig2
 
 # disable warnings for SSL verification
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
@@ -215,6 +214,8 @@ def productize(dataset_name, raw_dir, zip_file, download_source):
 
 def ingest_alos2(download_source, file_type, path_number=None):
     """Download file, push to repo and submit job for extraction."""
+    # TODO: use the extract_nested_zip function to unzip
+    #  recusively and walk to find ALOS2 data for ingestion
 
     pri_zip_paths = glob.glob('*.zip')
     sec_zip_files = []
@@ -266,61 +267,8 @@ def ingest_alos2(download_source, file_type, path_number=None):
     # retaining primary zip, we can delete it if we want
     # os.remove(pri_zip_path)
 
+
 def load_context():
     with open('_context.json') as data_file:
         data = json.load(data_file)
         return data
-
-def cmdLineParse():
-    '''
-    Command line parser.
-    '''
-
-    parser = argparse.ArgumentParser( description='Getting ALOS-2 L2.1 / L1.1 data into ARIA')
-    parser.add_argument('-d', dest='download_url', type=str, default='',
-            help = 'Download url if available')
-    parser.add_argument('-o', dest='order_id', type=str, default='',
-            help = 'Order ID from AUIG2 if available')
-    parser.add_argument('-u', dest='username', type=str, default='',
-            help = 'Usernmae from AUIG2 if available')
-    parser.add_argument('-p', dest='password', type=str, default='',
-            help = 'Password from AUIG2 if available')
-    parser.add_argument("--path_number_to_check", help="Path number provided from ALOS2 Ordering system to "
-                                                     "check against empirical formulation.", required=False)
-    parser.add_argument("--file_type", dest='file_type', help="download file type to verify", default='zip',
-                        choices=alos2_utils.ALL_TYPES, required=False)
-    return parser.parse_args()
-
-if __name__ == "__main__":
-    args = cmdLineParse()
-
-    try:
-        # first check if we need to read from _context.json
-        if not (args.download_url or args.order_id):
-            # no inputs defined (as per defaults)
-            # we need to try to load from context
-            ctx = load_context()
-            args.download_url = ctx["download_url"]
-            args.order_id  = ctx["auig2_orderid"]
-            args.username=ctx["auig2_username"]
-            args.password=ctx["auig2_password"]
-            args.path_number_to_check=ctx["path_number_to_check"]
-
-        if args.download_url:
-            alos2_utils.download(args.download_url)
-            download_source = args.download_url
-        elif args.order_id:
-            auig2.download(args)
-            download_source = "UN:%s_OrderID:%s"
-        else:
-            raise RuntimeError("Unable to do anything. Download parameters not defined. "
-                               "Input args: {}".format(str(args)))
-
-        ingest_alos2(download_source, args.file_type, path_number=args.path_number_to_check)
-
-    except Exception as e:
-        with open('_alt_error.txt', 'a') as f:
-            f.write("%s\n" % str(e))
-        with open('_alt_traceback.txt', 'a') as f:
-            f.write("%s\n" % traceback.format_exc())
-        raise

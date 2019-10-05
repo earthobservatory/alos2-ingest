@@ -52,6 +52,24 @@ def verify_and_extract(zip_file, file_type):
 
     return prod_dir
 
+def extract_nested_zip(zippedFile):
+    """ Extract a zip file including any nested zip files
+        Delete the zip file(s) after extraction
+    """
+    print("extracting %s"  % zippedFile)
+    with zipfile.ZipFile(zippedFile, 'r') as zfile:
+        unzip_dir = os.path.abspath(zippedFile.replace(".zip", ""))
+        zfile.extractall(unzip_dir)
+    print("removing %s"  % zippedFile)
+    os.remove(zippedFile)
+    print("walking through %s"  % unzip_dir)
+    for root, dirs, files in os.walk(unzip_dir):
+        for filename in files:
+            if re.search(r'\.zip$', filename):
+                fileSpec = os.path.join(root, filename)
+                print("submitting zip file extraction %s"  % fileSpec)
+                extract_nested_zip(fileSpec)
+
 
 def md_frm_dataset_name(metadata, dataset_name):
     metadata['prod_name'] = dataset_name
