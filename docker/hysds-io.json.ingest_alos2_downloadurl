@@ -1,0 +1,29 @@
+
+{
+  "label" : "ALOS2 Ingest from Download URL",
+   "recommended-queues" : [
+    "factotum-job_worker-large",
+    "aria-job_worker-small",
+    "volcano-job_worker-small",
+    "sealevel-job_worker-small",
+    "tectonics-job_worker-small",
+    "change_detection-job_worker-small",
+    "urgent_response-job_worker-small"
+   ],
+  "allowed_accounts": [ "ops" ],
+  "submission_type":"individual",
+  "params" : [
+
+    {
+      "name": "download_url",
+      "from": "submitter",
+      "optional": true
+    },
+    {
+      "name": "script",
+      "from": "value",
+      "type": "text",
+      "value": "ingestalos2_downloadurl.py"
+    }
+  ]
+}

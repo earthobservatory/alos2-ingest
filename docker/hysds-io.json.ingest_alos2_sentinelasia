@@ -1,5 +1,5 @@
 {
-  "label" : "ALOS2 Ingest Proto",
+  "label" : "ALOS2 Ingest from Sentinel Asia",
    "recommended-queues" : [
     "factotum-job_worker-large",
     "aria-job_worker-small",
@@ -13,33 +13,28 @@
   "submission_type":"individual",
   "params" : [
     {
-      "name": "download_url",
+      "name": "data_id",
       "from": "submitter",
+      "placeholder":"(optional) either data_id/eor_id - specific file to download",
       "optional": true
     },
     {
-      "name": "auig2_orderid",
+      "name": "eor_id",
       "from": "submitter",
-      "placeholder":"(optional) order-id - if getting from AUIG2",
+      "placeholder":"(optional) either data_id/eor_id - specify eor_id to download all ALOS2 Data from",
       "optional": true
     },
     {
-      "name": "auig2_username",
+      "name": "queue_eor_id",
       "from": "submitter",
-      "placeholder":"(optional) username - if getting from AUIG2",
+      "placeholder":"(optional) must be specified if eor_id is used",
       "optional": true
     },
     {
-      "name": "auig2_password",
-      "from": "submitter",
-      "placeholder":"(optional) password - if getting from AUIG2",
-      "optional": true
-    },
-    {
-      "name": "path_number_to_check",
-      "from": "submitter",
-      "optional": true,
-      "type": "number"
+      "name": "script",
+      "from": "value",
+      "type": "text",
+      "value": "ingestalos2_sentinelasia.py"
     }
   ]
 }

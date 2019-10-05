@@ -1,0 +1,37 @@
+{
+  "command": "/home/ops/verdi/ops/alos2-ingest/ingest_alos2.sh",
+  "imported_worker_files": {
+    "/home/ops/.netrc": "/home/ops/.netrc",
+    "/home/ops/.aws": "/home/ops/.aws"
+  },
+  "recommended-queues" : [
+    "factotum-job_worker-large",
+    "aria-job_worker-small",
+    "volcano-job_worker-small",
+    "sealevel-job_worker-small",
+    "tectonics-job_worker-small",
+    "change_detection-job_worker-small",
+    "urgent_response-job_worker-small"
+  ],
+  "disk_usage": "200GB",
+  "soft_time_limit": 36000,
+  "time_limit": 40000,
+  "params" : [
+    {
+      "name": "auig2_orderid",
+      "destination": "context"
+    },
+    {
+      "name": "auig2_username",
+      "destination": "context"
+    },
+    {
+      "name": "auig2_password",
+      "destination": "context"
+    },
+    {
+      "name": "script",
+      "destination": "positional"
+    }
+  ]
+}

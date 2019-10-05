@@ -1,5 +1,5 @@
 {
-  "command": "/home/ops/verdi/ops/alos2-ingest/ingest_alos2_proto.sh",
+  "command": "/home/ops/verdi/ops/alos2-ingest/ingest_alos2.sh",
   "imported_worker_files": {
     "/home/ops/.netrc": "/home/ops/.netrc",
     "/home/ops/.aws": "/home/ops/.aws"
@@ -18,24 +18,20 @@
   "time_limit": 40000,
   "params" : [
     {
-      "name": "download_url",
+      "name": "data_id",
       "destination": "context"
     },
     {
-      "name": "auig2_orderid",
+      "name": "eor_id",
       "destination": "context"
     },
     {
-      "name": "auig2_username",
+      "name": "queue_eor_id",
       "destination": "context"
     },
     {
-      "name": "auig2_password",
-      "destination": "context"
-    },
-    {
-      "name": "path_number_to_check",
-      "destination": "context"
+      "name": "script",
+      "destination": "positional"
     }
   ]
 }
