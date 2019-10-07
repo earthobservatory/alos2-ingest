@@ -100,7 +100,7 @@ def create_alos2_md_bos(dir_name, filename):
         id = m.group(1)
         params = {'cql_filter': "(identifier='{}')".format(id)}
 
-        r = requests.get(geo_server, params)
+        r = requests.get(geo_server, params, verify=False)
         r.raise_for_status()
 
         md = r.json()["features"][0]

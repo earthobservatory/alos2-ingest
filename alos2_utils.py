@@ -4,16 +4,9 @@ import re
 import zipfile
 import configparser
 import io
-#TODO: uncomment this later!
-# import osaka.main
 import datetime, os, json, logging, traceback
 from subprocess import check_call, check_output
 import glob
-# all file types
-ALL_TYPES = []
-# zip types
-ZIP_TYPE = ["zip"]
-ALL_TYPES.extend(ZIP_TYPE)
 ALOS2_L11 = "1.1"
 
 
@@ -23,7 +16,7 @@ def download(download_url):
     logging.info("Downloading %s to %s." % (download_url, dest))
     try:
         cmd = "python -c \'import osaka.main; osaka.main.get(\"%s\", \"%s\", params={\"oauth\": None}, measure=True, output=\"./pge_metrics.json\")\'" % (download_url, dest)
-        print(cmd)
+        logging.info(cmd)
         check_output(cmd, shell=True)
     except Exception as e:
         tb = traceback.format_exc()
@@ -31,43 +24,33 @@ def download(download_url):
                                                            dest, tb))
         raise
 
-def verify_and_extract(zip_file, file_type):
+def verify_and_extract(zip_file):
     """Verify downloaded file is okay by checking that it can
        be unzipped/untarred."""
-    prod_dir = None
-    if file_type in ZIP_TYPE:
-        if not zipfile.is_zipfile(zip_file):
-            raise RuntimeError("%s is not a zipfile." % zip_file)
-        with zipfile.ZipFile(zip_file, 'r') as f:
-            ret = f.testzip()
-            if ret:
-                raise RuntimeError("%s is corrupt. Test zip returns: %s" % (zip_file, ret))
-            else:
-                prod_dir = zip_file.replace(".zip", "")
-                f.extractall(prod_dir)
-
-    else:
-        raise NotImplementedError("Failed to verify %s is file type %s." % \
-                                  (zip_file, file_type))
-
-    return prod_dir
+    unzip_dir = None
+    if not zipfile.is_zipfile(zip_file):
+        raise RuntimeError("%s is not a zipfile." % zip_file)
+    with zipfile.ZipFile(zip_file, 'r') as f:
+        ret = f.testzip()
+        if ret:
+            raise RuntimeError("%s is corrupt. Test zip returns: %s" % (zip_file, ret))
+        else:
+            unzip_dir = os.path.abspath(zip_file.replace(".zip", ""))
+            f.extractall(unzip_dir)
+    return unzip_dir
 
 def extract_nested_zip(zippedFile):
     """ Extract a zip file including any nested zip files
         Delete the zip file(s) after extraction
     """
-    print("extracting %s"  % zippedFile)
-    with zipfile.ZipFile(zippedFile, 'r') as zfile:
-        unzip_dir = os.path.abspath(zippedFile.replace(".zip", ""))
-        zfile.extractall(unzip_dir)
-    print("removing %s"  % zippedFile)
-    os.remove(zippedFile)
-    print("walking through %s"  % unzip_dir)
+    logging.info("extracting %s"  % zippedFile)
+    unzip_dir = verify_and_extract(zippedFile)
+    logging.info("walking through %s"  % unzip_dir)
     for root, dirs, files in os.walk(unzip_dir):
         for filename in files:
             if re.search(r'\.zip$', filename):
                 fileSpec = os.path.join(root, filename)
-                print("submitting zip file extraction %s"  % fileSpec)
+                logging.info("submitting zip file extraction %s"  % fileSpec)
                 extract_nested_zip(fileSpec)
 
 
@@ -159,7 +142,6 @@ def md_frm_extractor(alos2_dir, metadata):
 
 
 def create_metadata(alos2_dir, dataset_name, is_l11):
-    # TODO: Some of these are hardcoded! Do we need them?
     metadata = {}
     metadata = md_frm_dataset_name(metadata, dataset_name)
     summary_file = os.path.join(alos2_dir, "summary.txt")
@@ -221,13 +203,13 @@ def extract_dataset_name(raw_dir):
 
     return dataset_name
 
-def check_path_num(metadata, path_number):
-    if path_number:
-        path_num = int(float(path_number))
-        logging.info("Checking manual input path number {} against formulated path number {}"
-                     .format(path_num, metadata['trackNumber']))
-        if path_num != metadata['trackNumber']:
-            raise RuntimeError("There might be an error in the formulation of path number. "
-                               "Formulated path_number: {} | Manual input path_number: {}"
-                               .format(metadata['trackNumber'], path_num))
+# def check_path_num(metadata, path_number):
+#     if path_number:
+#         path_num = int(float(path_number))
+#         logging.info("Checking manual input path number {} against formulated path number {}"
+#                      .format(path_num, metadata['trackNumber']))
+#         if path_num != metadata['trackNumber']:
+#             raise RuntimeError("There might be an error in the formulation of path number. "
+#                                "Formulated path_number: {} | Manual input path_number: {}"
+#                                .format(metadata['trackNumber'], path_num))
 

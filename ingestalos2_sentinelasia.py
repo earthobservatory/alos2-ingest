@@ -32,8 +32,6 @@ def cmdLineParse():
     parser.add_argument('-u','--username', action="store", dest="username", help='Sentinel Asia Login, if not givem, checks .netrc')
     parser.add_argument('-p','--password', action="store", dest="password", help='Sentinel Asia Login, if not givem, checks .netrc')
     parser.add_argument('-dry_run', action='store_true', dest="dry_run", default=False, help='Will not downlaod files if flag is defined')
-    parser.add_argument("--file_type", dest='file_type', help="download file type to verify", default='zip',
-                        choices=alos2_utils.ALL_TYPES, required=False)
     return parser.parse_args()
 
 def submit_sa_data_download(data_id, queue, job_type):
@@ -73,23 +71,27 @@ if __name__ == "__main__":
     args = cmdLineParse()
 
     try:
+        ctx = ingest_alos2_proto.load_context()
         # first check if we need to read from _context.json
         if not (args.eor_id or args.data_id):
-            ctx = ingest_alos2_proto.load_context()
             args.eor_id = ctx["eor_id"]
             args.data_id = ctx["data_id"]
 
 
         if args.eor_id and args.data_id:
             raise RuntimeError("Please only specify either data_id or eor_id, do not specify both!")
-        else:
+        elif args.eor_id or args.data_id:
             download_urls = sa.get_download_urls(args)
+        else:
+            raise RuntimeError("Please specify either data_id or eor_id to search for download.")
+
 
         if args.data_id:
             # only 1 download if only data_id is specified
-            # sa.do_download(args, download_urls)
+            # TODO remember to make me download again
+            sa.do_download(args, download_urls)
             download_source = download_urls[0]
-            ingest_alos2_proto.ingest_alos2(download_source, args.file_type)
+            ingest_alos2_proto.ingest_alos2(download_source)
 
         else:
             # for loop download if only eor_id is specified

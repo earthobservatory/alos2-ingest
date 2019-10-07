@@ -31,24 +31,24 @@ def cmdLineParse():
             help = 'Usernmae from AUIG2 if available')
     parser.add_argument('-p', dest='password', type=str, default='',
             help = 'Password from AUIG2 if available')
-    parser.add_argument("--file_type", dest='file_type', help="download file type to verify", default='zip',
-                        choices=alos2_utils.ALL_TYPES, required=False)
+
     return parser.parse_args()
 
 if __name__ == "__main__":
     args = cmdLineParse()
+    ctx = ingest_alos2_proto.load_context()
 
     try:
         # first check if we need to read from _context.json
         if not args.download_url:
             # no inputs defined (as per defaults)
             # we need to try to load from context
-            ctx = ingest_alos2_proto.load_context()
             args.download_url = ctx["download_url"]
-            alos2_utils.download(args.download_url)
-            download_source = args.download_url
 
-        ingest_alos2_proto.ingest_alos2(download_source, args.file_type)
+        # TODO: remember to bring back the download
+        alos2_utils.download(args.download_url)
+        download_source = args.download_url
+        ingest_alos2_proto.ingest_alos2(download_source)
 
     except Exception as e:
         with open('_alt_error.txt', 'a') as f:

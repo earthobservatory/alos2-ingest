@@ -76,7 +76,7 @@ def do_download(inps, download_urls):
     s = session_login(inps.username, inps.password)
 
     if not inps.dry_run:
-            # parallelize this!
+            # TODO: parallelize this!
             for dl_url in download_urls:
                 r_download_check = s.head(dl_url)
                 print("Download check status code: {}".format(r_download_check.status_code))

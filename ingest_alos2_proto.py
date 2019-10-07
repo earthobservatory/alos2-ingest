@@ -80,12 +80,12 @@ def getFootprintJson(tif_file):
     tmp_geojson = os.path.join(os.path.dirname(os.path.abspath(tif_file)),"tmp.json")
     tmp_final_geojson = os.path.join(os.path.dirname(os.path.abspath(tif_file)),"tmp_final.json")
 
-    print('Getting footprint of %s ...' % tif_file)
+    logging.info('Getting footprint of %s ...' % tif_file)
     ds = gdal.Open(tif_file)
     file_arr = np.array(ds.GetRasterBand(1).ReadAsArray())  # assuming we only care about the base layer
     footprint = file_arr != 0  # create radar footprint mask
     writeMask(tmp_msk_file, footprint, tif_file)
-    print("Creating polygon for file: %s" % tmp_msk_file)
+    logging.info("Creating polygon for file: %s" % tmp_msk_file)
     check_call("gdal_translate -a_nodata 0 {} {}".format(tmp_msk_file, tmp_msk_nodata_file), shell=True)
     check_call("gdal_polygonize.py -f GeoJSON {} {}".format(tmp_msk_nodata_file, tmp_geojson), shell=True)
     check_call("ogr2ogr -f GeoJSON -simplify 0.001 {} {}".format(tmp_final_geojson, tmp_geojson), shell=True)
@@ -146,10 +146,21 @@ def create_product_browse(file):
     return
 
 
-def productize(dataset_name, raw_dir, zip_file, download_source):
+def productize(dataset_name, raw_dir, download_source):
     """Use extracted data to create metadata and the ALOS2 L1.1/L1.5/L2.1 product"""
     is_l11 = alos2_utils.ALOS2_L11 in dataset_name
     metadata, dataset, proddir = alos2_utils.create_product_base(raw_dir, dataset_name, is_l11)
+
+    # zipfile name for main product for posting to ARIA's dataset product directory
+    archive_filename = os.path.join(proddir, "{}.zip".format(proddir))
+    raw_dir_zipped = "{}.zip".format(raw_dir)
+    # checks if raw-dir has a zip file equivalent, raw_dir_zipped
+    if os.path.isfile(raw_dir_zipped):
+        logging.info("Zipfile of raw_dir found. Moving %s to %s" % (raw_dir_zipped, archive_filename))
+        shutil.move(raw_dir_zipped, archive_filename)
+    else:
+        logging.info("Zipfile of raw_dir not found. Repackaging contents of %s to %s" % (raw_dir, archive_filename))
+        shutil.make_archive(os.path.splitext(archive_filename)[0], 'zip', raw_dir)
 
     if is_l11:
         # create browse only for L1.1 data (if available)
@@ -177,7 +188,8 @@ def productize(dataset_name, raw_dir, zip_file, download_source):
 
             # create the layer for facet view (only one layer created)
             if not os.path.isdir(tile_output_dir):
-                tile_max_zoom = 12
+                # TODO: are tiles necessary?
+                tile_max_zoom = 8
                 layer = tiff_regex.match(tf).group(1)
                 create_tiled_layer(os.path.join(tile_output_dir, layer), processed_tif_disp, zoom=[0, tile_max_zoom])
                 tile_md["tile_layers"].append(layer)
@@ -204,53 +216,33 @@ def productize(dataset_name, raw_dir, zip_file, download_source):
     for fn in browse_files:
         shutil.move(fn, proddir)
 
-    # move main zip file as dataset to proddir
-    archive_filename = "{}/{}.zip".format(proddir, proddir)
-    shutil.move(zip_file, archive_filename)
     metadata["archive_filename"] = os.path.basename(archive_filename)
     metadata['download_source'] = download_source
 
     return metadata, dataset, proddir
 
-def ingest_alos2(download_source, file_type, path_number=None):
+def ingest_alos2(download_source):
     """Download file, push to repo and submit job for extraction."""
-    # TODO: use the extract_nested_zip function to unzip
-    #  recusively and walk to find ALOS2 data for ingestion
 
     pri_zip_paths = glob.glob('*.zip')
-    sec_zip_files = []
+    # sec_zip_files = []
     for pri_zip_path in pri_zip_paths:
-        # verify downloaded file was not corrupted
-        logging.info("Verifying %s is file type %s." % (pri_zip_path, file_type))
-        try:
-            sec_zip_dir = alos2_utils.verify_and_extract(pri_zip_path, file_type)
-            logging.info("seec zip dir: %s" % sec_zip_dir)
+        alos2_utils.extract_nested_zip(pri_zip_path)
 
-            # unzip the second layer to gather metadata
-            sec_zip_files = glob.glob(os.path.join(sec_zip_dir,'*.zip'))
-            logging.info("glob dir: %s" % os.path.join(sec_zip_dir,'*.zip'))
+    raw_dir_list = []
+    for root, subFolders, files in os.walk(os.getcwd()):
+        if files:
+            for x in files:
+                m = re.search("IMG-[A-Z]{2}-ALOS2.{05}(.{04}-\d{6})-.{4}.*", x)
+                if m:
+                    logging.info("We found a ALOS2 dataset directory in: %s, adding to list" % root)
+                    raw_dir_list.append(root)
+                    break
 
-            if not len(sec_zip_files) > 0:
-                raise RuntimeError("Unable to find second zipfiles under %s" % sec_zip_dir)
-
-        except Exception as e:
-            tb = traceback.format_exc()
-            logging.error("Failed to verify and extract files of type %s: %s" % \
-                          (file_type, tb))
-            raise
-
-    for sec_zip_file in sec_zip_files:
-        logging.info("Verifying %s is file type %s." % (sec_zip_file, file_type))
-        raw_dir = alos2_utils.verify_and_extract(sec_zip_file, file_type)
-
-        # get the datasetname from IMG files in raw_dir
+    for raw_dir in raw_dir_list:
         dataset_name = alos2_utils.extract_dataset_name(raw_dir)
-
         # productize our extracted data
-        metadata, dataset, proddir = productize(dataset_name, raw_dir, sec_zip_file, download_source)
-
-        #checks path number formulation:
-        alos2_utils.check_path_num(metadata, path_number)
+        metadata, dataset, proddir = productize(dataset_name, raw_dir, download_source)
 
         # dump metadata
         with open(os.path.join(proddir, dataset_name + ".met.json"), "w") as f:
@@ -262,11 +254,12 @@ def ingest_alos2(download_source, file_type, path_number=None):
             json.dump(dataset, f, indent=2)
             f.close()
 
-    #cleanup
-    shutil.rmtree(sec_zip_dir, ignore_errors=True)
-    # retaining primary zip, we can delete it if we want
-    # os.remove(pri_zip_path)
+        # cleanup raw_dir
+        shutil.rmtree(raw_dir, ignore_errors=True)
 
+    # cleanup downloaded zips in cwd
+    for file in glob.glob('*.zip'):
+        os.remove(file)
 
 def load_context():
     with open('_context.json') as data_file:
