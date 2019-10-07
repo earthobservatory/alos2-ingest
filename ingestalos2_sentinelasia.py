@@ -11,8 +11,7 @@ HTTP/HTTPS, FTP and OAuth authentication is handled using .netrc.
 """
 
 import logging, traceback, argparse, os, json
-import alos2_utils
-import ingest_alos2_proto
+import alos2_productize
 import scripts.sentinelasia_download as sa
 import subprocess as sp
 from datetime import datetime
@@ -71,7 +70,7 @@ if __name__ == "__main__":
     args = cmdLineParse()
 
     try:
-        ctx = ingest_alos2_proto.load_context()
+        ctx = alos2_productize.load_context()
         # first check if we need to read from _context.json
         if not (args.eor_id or args.data_id):
             args.eor_id = ctx["eor_id"]
@@ -91,7 +90,7 @@ if __name__ == "__main__":
             # TODO remember to make me download again
             sa.do_download(args, download_urls)
             download_source = download_urls[0]
-            ingest_alos2_proto.ingest_alos2(download_source)
+            alos2_productize.ingest_alos2(download_source)
 
         else:
             # for loop download if only eor_id is specified

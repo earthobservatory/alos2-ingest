@@ -93,6 +93,8 @@ def download(inps):
     ### DOWNLOAD THE FILE WITH THE GIVEN ORDER ID ###
     url = "http://auig2.jaxa.jp/pp/service/download?downloadurl=/start/download/file&itemname=%s&itemtype=1" % inps.order_id
     f = opener.open(url)
+    print("Downloading from url: %s " % url)
+    print("Header reply: %s " % f.headers['Content-Disposition'])
     filename = f.headers['Content-Disposition'].split("=")[-1].strip()
     print("ALOS-2 AUIG2 Download:", filename)
     start = time.time()
@@ -115,6 +117,8 @@ def download(inps):
     mb_sec = (os.path.getsize(filename) / (1024 * 1024.0)) / total_time
     print("Speed: %s MB/s" % mb_sec)
     print("Total Time: %s s" % total_time)
+
+    return url
 
 if __name__ == '__main__':
     if len(sys.argv)==1:

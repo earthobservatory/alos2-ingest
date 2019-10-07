@@ -29,7 +29,8 @@
       "name": "auig2_password",
       "from": "submitter",
       "placeholder":"(optional) password - if getting from AUIG2",
-      "optional": true
+      "optional": true,
+      "lambda":"lambda pw: pw.encode('base64')"
     },
     {
       "name": "script",

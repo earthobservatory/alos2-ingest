@@ -11,8 +11,9 @@ HTTP/HTTPS, FTP and OAuth authentication is handled using .netrc.
 """
 
 import logging, traceback, argparse
-import alos2_utils
+import scripts.auig2_download as auig2
 import alos2_productize
+import base64
 
 log_format = "[%(asctime)s: %(levelname)s/%(funcName)s] %(message)s"
 logging.basicConfig(format=log_format, level=logging.INFO)
@@ -22,9 +23,13 @@ def cmdLineParse():
     Command line parser.
     '''
 
-    parser = argparse.ArgumentParser( description='Getting ALOS-2 L2.1 / L1.1 data into ARIA')
-    parser.add_argument('-d', dest='download_url', type=str, default='',
-            help = 'Download url if available')
+    parser = argparse.ArgumentParser( description='Getting ALOS-2 L2.1 / L1.1 data into ARIA from AUIG2')
+    parser.add_argument('-o', dest='order_id', type=str, default='',
+            help = 'Order ID from AUIG2 if available')
+    parser.add_argument('-u', dest='username', type=str, default='',
+            help = 'Usernmae from AUIG2 if available')
+    parser.add_argument('-p', dest='password', type=str, default='',
+            help = 'Password from AUIG2 if available')
 
     return parser.parse_args()
 
@@ -34,14 +39,20 @@ if __name__ == "__main__":
 
     try:
         # first check if we need to read from _context.json
-        if not args.download_url:
+        if not (args.username and args.password):
             # no inputs defined (as per defaults)
             # we need to try to load from context
-            args.download_url = ctx["download_url"]
+            args.username = ctx["auig2_username"]
+            args.password = base64.b64decode(ctx["auig2_password"]).decode("utf-8")
+            # TODO: remember to remove this
+            print("password: %s " % args.password)
+
+        if not args.order_id:
+            args.order_id = ctx["auig2_orderid"]
 
         # TODO: remember to bring back the download
-        alos2_utils.download(args.download_url)
-        download_source = args.download_url
+        url = auig2.download(args)
+        download_source = url
         alos2_productize.ingest_alos2(download_source)
 
     except Exception as e:
