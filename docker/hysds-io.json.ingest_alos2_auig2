@@ -1,6 +1,5 @@
-
 {
-  "label" : "ALOS2 Ingest from Download URL",
+  "label" : "ALOS2 Ingest from AUIG2",
    "recommended-queues" : [
     "factotum-job_worker-large",
     "aria-job_worker-small",
