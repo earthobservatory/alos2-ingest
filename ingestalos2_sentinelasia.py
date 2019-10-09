@@ -54,6 +54,16 @@ def submit_sa_data_download(data_id, queue, job_type):
             "name": "eor_id",
             "from": "value",
             "value": ""
+        },
+        {
+            "name": "queue_eor_id",
+            "from": "value",
+            "value": ""
+        },
+        {
+          "name": "script",
+          "from": "value",
+          "value": "ingestalos2_sentinelasia.py"
         }
     ]
 
@@ -95,7 +105,7 @@ if __name__ == "__main__":
         else:
             # for loop download if only eor_id is specified
             for download_url in download_urls:
-                data_id = download_url.rsplit('/', 1)[-1]
+                data_id = download_url.rsplit('=', 1)[-1]
                 queue = ctx["queue_eor_id"]
                 tag = ctx['job_specification']['job-version']
                 job_type = "job-ingest_alos2_sentinelasia"
@@ -104,7 +114,7 @@ if __name__ == "__main__":
                 job_name = "%s-%s-%s" % (job_spec, data_id, rtime.strftime("%d_%b_%Y_%H:%M:%S"))
                 rule, params = submit_sa_data_download(data_id, queue, job_type)
 
-                command = PGE_PATH + '/submit_job.py --job_name %s --job_spec %s --params \'%s\' --rule \'%s\' > temp.log' \
+                command = PGE_PATH + '/submit_job.py --job_name %s --job_spec %s --params \'%s\' --rule \'%s\' > job_submit.log 2>&1' \
                           % (job_name, job_spec, json.dumps(params), json.dumps(rule))
 
                 print("submitting job: "+ command)

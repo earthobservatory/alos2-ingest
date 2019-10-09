@@ -35,9 +35,9 @@ if __name__ == "__main__":
     print(json.dumps(rule, sort_keys=True, indent=4, separators=(',', ': ')))
 
 
-    submit_mozart_job({}, args.rule,
+    submit_mozart_job({}, rule,
         hysdsio={"id": "internal-temporary-wiring",
-                 "params": args.params,
+                 "params": params,
                  "job-specification": args.job_spec},
         job_name=args.job_name)
 
