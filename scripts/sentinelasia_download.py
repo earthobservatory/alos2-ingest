@@ -8,7 +8,7 @@ import time
 
 
 LOGIN_URL = 'https://sentinel.tksc.jaxa.jp/sentinel2/topControl.jsp'
-CATALOG_URL = 'https://sentinel.tksc.jaxa.jp/sentinel2/webresources/thumbnailEmob/emergencyViewThumbnail?requestId=ERJPYU000001&subsetName=Emergency+Observation&selectDate='
+CATALOG_URL = 'https://sentinel.tksc.jaxa.jp/sentinel2/webresources/thumbnailEmob/emergencyViewThumbnail?requestId={}&subsetName=Emergency+Observation&selectDate='
 DL_URL = 'https://sentinel.tksc.jaxa.jp/sentinel2/webresources/thumbnailEmob/download?dataId='
 
 def parse():
@@ -57,7 +57,7 @@ def get_download_urls(inps):
     # get list of files
     download_urls = []
     if inps.eor_id:
-        r_catalog = s.get(CATALOG_URL)
+        r_catalog = s.get(CATALOG_URL.format(inps.eor_id))
         print("Catalog status code:  {}".format(r_catalog.status_code))
         print("Catalog response: {}".format(r_catalog.json()))
 
