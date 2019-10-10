@@ -114,7 +114,7 @@ if __name__ == "__main__":
                 job_name = "%s-%s-%s" % (job_spec, data_id, rtime.strftime("%d_%b_%Y_%H:%M:%S"))
                 rule, params = submit_sa_data_download(data_id, queue, job_type)
 
-                command = PGE_PATH + '/submit_job.py --job_name %s --job_spec %s --params \'%s\' --rule \'%s\' > job_submit.log 2>&1' \
+                command = PGE_PATH + '/submit_job.py --job_name %s --job_spec %s --params \'%s\' --rule \'%s\'' \
                           % (job_name, job_spec, json.dumps(params), json.dumps(rule))
 
                 print("submitting job: "+ command)
