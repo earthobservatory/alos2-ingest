@@ -97,13 +97,25 @@ if __name__ == "__main__":
 
         if args.data_id:
             # only 1 download if only data_id is specified
-            # TODO remember to make me download again
-            sa.do_download(args, download_urls)
-            download_source = download_urls[0]
-            alos2_productize.ingest_alos2(download_source)
+            # check if the file is something we can ingest before downloading
+            filename, filesize = sa.get_file_params(args, download_urls[0])
+            print("Download url {} has filename {} , filesize {}B".format(download_urls[0], filename, filesize))
+            if not filename:
+                raise RuntimeError("Unable to get file information, seems like we are not logged in or data_id %s does not exists!" % args.data_id)
+            else:
+                # check if filename has zip!
+                if ".zip" not in filename:
+                    raise RuntimeError("We are unable tp process data_id: {}. File is not in zipped format ({}/{}B)."
+                                       .format(args.data_id,filename,filesize))
+                else:
+                    print("Download url {} passed zip test".format(download_urls[0]))
+                    # TODO remember to make me download again
+                    sa.do_download(args, download_urls)
+                    download_source = download_urls[0]
+                    alos2_productize.ingest_alos2(download_source)
 
         else:
-            # for loop download if only eor_id is specified
+            # for loop download split into 1 download = 1 job if only eor_id is specified
             for download_url in download_urls:
                 data_id = download_url.rsplit('=', 1)[-1]
                 queue = ctx["queue_eor_id"]

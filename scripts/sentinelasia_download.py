@@ -72,6 +72,23 @@ def get_download_urls(inps):
 
     return download_urls
 
+def get_file_params(inps, dl_url):
+    filename = ""
+    filesize = 0
+
+    s = session_login(inps.username, inps.password)
+
+    r_file_check = s.head(dl_url)
+    print("File check status code: {}".format(r_file_check.status_code))
+    if r_file_check.status_code == 200:
+        print("File check headers: {}".format(r_file_check.headers))
+        filename = r_file_check.headers['Content-Disposition'].split("=")[-1].strip().replace('"', '')
+        filesize = int(r_file_check.headers['Content-Length'])
+
+
+    return filename, filesize
+
+
 def do_download(inps, download_urls):
     s = session_login(inps.username, inps.password)
 
