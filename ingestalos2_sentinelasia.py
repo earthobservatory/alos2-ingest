@@ -90,7 +90,7 @@ if __name__ == "__main__":
         if args.eor_id and args.data_id:
             raise RuntimeError("Please only specify either data_id or eor_id, do not specify both!")
         elif args.eor_id or args.data_id:
-            download_urls = sa.get_download_urls(args)
+            download_params = sa.get_all_params(args)
         else:
             raise RuntimeError("Please specify either data_id or eor_id to search for download.")
 
@@ -98,26 +98,24 @@ if __name__ == "__main__":
         if args.data_id:
             # only 1 download if only data_id is specified
             # check if the file is something we can ingest before downloading
-            filename, filesize = sa.get_file_params(args, download_urls[0])
-            print("Download url {} has filename {} , filesize {}B".format(download_urls[0], filename, filesize))
-            if not filename:
-                raise RuntimeError("Unable to get file information, seems like we are not logged in or data_id %s does not exists!" % args.data_id)
+            # check if filename has zip!
+            filename = download_params[0]["filename"]
+            filesize = download_params[0]["filesize"]
+            url = download_params[0]["download_url"]
+            if ".zip" not in download_params[0]["filename"]:
+                raise RuntimeError("We are unable tp process data_id: {}. File is not in zipped format ({}/{}B)."
+                                   .format(args.data_id,filename,filesize))
             else:
-                # check if filename has zip!
-                if ".zip" not in filename:
-                    raise RuntimeError("We are unable tp process data_id: {}. File is not in zipped format ({}/{}B)."
-                                       .format(args.data_id,filename,filesize))
-                else:
-                    print("Download url {} passed zip test".format(download_urls[0]))
-                    # TODO remember to make me download again
-                    sa.do_download(args, download_urls)
-                    download_source = download_urls[0]
-                    alos2_productize.ingest_alos2(download_source)
+                print("Download url {} passed zip test".format(url))
+                # TODO remember to make me download again
+                sa.do_download(args, download_params)
+                download_source = url
+                alos2_productize.ingest_alos2(download_source)
 
         else:
             # for loop download split into 1 download = 1 job if only eor_id is specified
-            for download_url in download_urls:
-                data_id = download_url.rsplit('=', 1)[-1]
+            for param in download_params:
+                data_id = param["download_url"].rsplit('=', 1)[-1]
                 queue = ctx["queue_eor_id"]
                 tag = ctx['job_specification']['job-version']
                 job_type = "job-ingest_alos2_sentinelasia"
