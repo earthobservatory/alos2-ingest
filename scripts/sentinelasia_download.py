@@ -198,7 +198,11 @@ def do_download(inps, download_params):
                     mb_sec = (os.path.getsize(o_file) / (1024 * 1024.0)) / total_time
                     print("Speed: %s MB/s" % mb_sec)
                     print("Total Time: %s s" % total_time)
+            else:
+                print('Files exists, not downloading %s' % o_file)
+
             r_download.close()
+
 
 if __name__ == '__main__':
     # Session will be closed at the end of with block
