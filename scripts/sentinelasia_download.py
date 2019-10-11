@@ -199,7 +199,7 @@ def do_download(inps, download_params):
                     print("Speed: %s MB/s" % mb_sec)
                     print("Total Time: %s s" % total_time)
             r_download.close()
-            
+
 if __name__ == '__main__':
     # Session will be closed at the end of with block
     inps = parse()
