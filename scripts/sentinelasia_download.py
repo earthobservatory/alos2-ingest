@@ -74,13 +74,13 @@ def get_all_params(inps):
                 all_params.extend(get_eorid_allfiles(inps, eor_id, eor_id_bulletin, s))
 
     # print statement here
-    if not download_params:
+    if not all_params:
         print("Unable to find anything in this search!")
     else:
-        print("Found {} ALOS-2 Data entries for your search:".format(len(download_params)))
+        print("Found {} ALOS-2 Data entries for your search:".format(len(all_params)))
         # print(json.dumps(download_params, indent=4, sort_keys=True))
 
-    for param in download_params:
+    for param in all_params:
         param = param.copy()
         param.pop("download_url")
         print(json.dumps(param, sort_keys=True))
