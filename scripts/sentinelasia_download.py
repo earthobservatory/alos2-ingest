@@ -181,22 +181,23 @@ def do_download(inps, download_params):
                 r_download.raise_for_status()
                 o_file = r_download_check.headers['Content-Disposition'].split("=")[-1].strip().replace('"', '')
                 # download file
-                print("Downloading file to: {}".format(o_file))
-                with open(o_file, 'wb') as f:
-                    count = 0
-                    start = time.time()
-                    CHUNK = 256 * 1024
-                    for chunk in r_download.iter_content(chunk_size=CHUNK):
-                        count += 1
-                        if chunk:  # filter out keep-alive new chunks
-                            f.write(chunk)
-                            if not count % 20:
-                                print("Wrote %s chunks: %s MB " % (count, str(count * CHUNK / (1024 * 1024))))
-                    f.close()
-                    total_time = time.time() - start
-                    mb_sec = (os.path.getsize(o_file) / (1024 * 1024.0)) / total_time
-                    print("Speed: %s MB/s" % mb_sec)
-                    print("Total Time: %s s" % total_time)
+                if not os.path.isfile(o_file):
+                    print("Downloading file to: {}".format(o_file))
+                    with open(o_file, 'wb') as f:
+                        count = 0
+                        start = time.time()
+                        CHUNK = 256 * 1024
+                        for chunk in r_download.iter_content(chunk_size=CHUNK):
+                            count += 1
+                            if chunk:  # filter out keep-alive new chunks
+                                f.write(chunk)
+                                if not count % 20:
+                                    print("Wrote %s chunks: %s MB " % (count, str(count * CHUNK / (1024 * 1024))))
+                        f.close()
+                        total_time = time.time() - start
+                        mb_sec = (os.path.getsize(o_file) / (1024 * 1024.0)) / total_time
+                        print("Speed: %s MB/s" % mb_sec)
+                        print("Total Time: %s s" % total_time)
                 r_download.close()
 
 if __name__ == '__main__':
