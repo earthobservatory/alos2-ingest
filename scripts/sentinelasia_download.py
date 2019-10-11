@@ -129,7 +129,10 @@ def get_eorid_allfiles(inps, eor_id, eor_id_bulletin=None, session=None):
                 eor_data.update({"filetitle":entry["title"]})
                 file_params = get_file_params(inps, data_id, s)
                 print("Found ALOS(Data):{} in EOR: {} ".format(data_id, eor_id))
-                all_params.append({**eor_data, **file_params})
+                # join eor_data and file_params
+                eor_data_cp = eor_data.copy()
+                file_params.update(eor_data_cp)
+                all_params.append(file_params)
 
     return all_params
 
