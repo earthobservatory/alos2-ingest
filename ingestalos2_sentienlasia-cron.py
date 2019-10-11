@@ -85,22 +85,24 @@ if __name__ == "__main__":
         args.eor_id = ""
         args.data_id = ""
         download_params = sa.get_all_params(args)
-        # for loop download split into 1 download = 1 job if only eor_id is specified
-        for param in download_params:
-            data_id = param["download_url"].rsplit('=', 1)[-1]
-            queue = "aria-job_worker-large"
-            tag = args.tag
-            job_type = "job-ingest_alos2_sentinelasia"
-            job_spec = "{}:{}".format(job_type, tag)
-            rtime = datetime.utcnow()
-            job_name = "%s-%s-%s" % (job_spec, data_id, rtime.strftime("%d_%b_%Y_%H:%M:%S"))
-            rule, params = submit_sa_data_download(data_id, queue, job_type)
 
-            command = PGE_PATH + '/submit_job.py --job_name %s --job_spec %s --params \'%s\' --rule \'%s\'' \
-                      % (job_name, job_spec, json.dumps(params), json.dumps(rule))
+        if not args.dry_run:
+            # for loop download split into 1 download = 1 job if only eor_id is specified
+            for param in download_params:
+                data_id = param["download_url"].rsplit('=', 1)[-1]
+                queue = "aria-job_worker-large"
+                tag = args.tag
+                job_type = "job-ingest_alos2_sentinelasia"
+                job_spec = "{}:{}".format(job_type, tag)
+                rtime = datetime.utcnow()
+                job_name = "%s-%s-%s" % (job_spec, data_id, rtime.strftime("%d_%b_%Y_%H:%M:%S"))
+                rule, params = submit_sa_data_download(data_id, queue, job_type)
+    
+                command = PGE_PATH + '/submit_job.py --job_name %s --job_spec %s --params \'%s\' --rule \'%s\'' \
+                          % (job_name, job_spec, json.dumps(params), json.dumps(rule))
 
-            print("submitting job: "+ command)
-            sp.check_call(command, shell=True)
+                print("submitting job: "+ command)
+                sp.check_call(command, shell=True)
 
 
     except Exception as e:
