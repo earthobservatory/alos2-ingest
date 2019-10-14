@@ -86,6 +86,7 @@ if __name__ == "__main__":
         args.eor_id = ctx["eor_id"]
         args.data_id = ctx["data_id"]
         args.start_time = ctx["start_date"]
+        args.end_time = datetime.today().strftime('%Y%m%d')
 
         if not (args.eor_id or args.data_id or args.start_time):
             raise RuntimeError("Please specify either eor_id or data_id or start_date")
