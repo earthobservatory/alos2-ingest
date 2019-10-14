@@ -49,8 +49,27 @@ Associated job:
     | ------------- |-------------| :---------:| :-----|
     | `download_url`     | URL where an ALOS-2 zipped file stored to be downloaded. E.g. from a webdav server | str |  `https"//my-webdav-url/test/235320010.zip` |
 
+## Ingesting ALOS2 L1.1 from gekko HPC
+This package also has scripts to create ALOS-2 metadata from stored ALOS-2 data in a HPC system and ingesting it into the ARIA system to reflect the archive.
+This workflow utilizes the HPC nodes to run the scripts that create the neccessary metadata and ingests it into the ARIA system. Hence, hysds libraries has to be installed in the HPC system for this to work.
 
-## ALOS2 Dataset
+Available scripts:
+- `scrape_alos2_aria_ingest.py`
+    - Given a directory, `-dir`, recursively walk through directories for any `IMG-HH*`/`IMG-HV*` files. Extract the unique scene date and submit a `ingest-alos2-md` job via `ingest2aria.pbs`(with folder scene is stored and date)
+- `ingest_alos2_md.py`
+    - Runs in HPC nodes
+    - Given a directory `-dir`, and date `-fdate`, creates a temp directory, symlinking all files with `*fdate*` in `dir`. 
+    - Gather file locations and create `metadata.json`, `dataset.json` based on `IMG-H*` filenames and bos-sarcat query. Ingest metadata into ARIA.
+
+- `ingest2aria.pbs`
+   - PBS HPC script to submit `ingest_alos2_md` to nodes.
+
+
+```bash
+python3 ./alos2-ingest/gekko/scrape_alos2_aria_ingest.py -dir /home/data/INSAR/ALOS2/ -pbs ./alos2-ingest/gekko/ingest2aria.pbs 
+
+```
+## ALOS2 Datasets
 - Based on the `IMG-*` file names in the uncompressed ALOS-2 package, the above jobs will all create different ALOS-2 datasets (L1.1/L1.5/L2.1):
 
     | ALOS-2 Format    | `type`   | `dataset`  |
