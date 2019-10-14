@@ -64,6 +64,7 @@ Available scripts:
 - `ingest2aria.pbs`
    - PBS HPC script to submit `ingest_alos2_md` to nodes.
 
+To ingest metadata for ALOS-2 stored in NTU gekko:
 
 ```bash
 python3 ./alos2-ingest/gekko/scrape_alos2_aria_ingest.py -dir /home/data/INSAR/ALOS2/ -pbs ./alos2-ingest/gekko/ingest2aria.pbs 
