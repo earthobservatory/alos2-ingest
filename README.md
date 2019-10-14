@@ -36,7 +36,7 @@ Associated job:
     | ------------- |-------------| :---------:| :-----|
     | `data_id`     | Data ID of singular ALOS-2 file from Sentinel-Asia to ingest  | str |  `JPJXisis0001201908160001` |
     | `eor_id`      | EOR ID of the event - will ingest all compatible ALOS-2 files from that EOR.    |  str |  `ERAHAC000007` |
-    | `start_date` | Date to start scraping (YYYYMMDD) - will scrape for all EOR IDs from tis date to now   |  str |  `20190930` |
+    | `start_date` | Date to start scraping (YYYYMMDD) - will scrape for all EOR IDs from start_date to now   |  str |  `20190930` |
     | `queue` | Autoscaling queue to submit multiple downloads for. Only applicable for `eor_id` or `start_date`.  |  str |  `aria-job_worker-large` |
     _*Note: Only specify either `data_id` / `eor_id` / `start_date` for each job_
 
