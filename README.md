@@ -51,7 +51,7 @@ Associated job:
 
 
 ## ALOS2 Dataset
-Based on the uncompressed IMG-* file names, the jobs will create different ALOS-2 datasets (L1.1/L1.5/L2.1):
+- Based on the uncompressed IMG-* file names, the jobs will create different ALOS-2 datasets (L1.1/L1.5/L2.1):
 
     | ALOS-2 Format    | `type`   | `dataset`  |
     | ------------- |-------------| :-----|
@@ -59,7 +59,7 @@ Based on the uncompressed IMG-* file names, the jobs will create different ALOS-
     | ALOS L1.5 GeoTIFF | `L1.5_geotiff`  |  `ALOS2_GeoTIFF`  |
     | ALOS L2.1 GeoTIFF | `L2.1_geotiff`  |  `ALOS2_GeoTIFF`  |
 
-Product format:
+- Product format:
 
     | Product        | Description   | Example  |
     | ------------- |-------------| :-----|
