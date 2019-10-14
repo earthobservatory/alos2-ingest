@@ -7,7 +7,6 @@ ARIA PGEs
     - extract
     - create visualization with map tiles on leaflet
         * compute polygon from GTiff (zoom level 0-14)
-        * create KMZ files for visualization on Google earth
 
 - ALOS2 L1.1 ingestion (CEOS format)
     - download
