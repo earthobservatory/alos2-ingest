@@ -116,7 +116,7 @@ if __name__ == "__main__":
             # for loop download split into 1 download = 1 job if only eor_id is specified
             for param in download_params:
                 data_id = param["download_url"].rsplit('=', 1)[-1]
-                queue = ctx["queue_eor_id"]
+                queue = ctx["queue"]
                 tag = ctx['job_specification']['job-version']
                 job_type = "job-ingest_alos2_sentinelasia"
                 job_spec = "{}:{}".format(job_type, tag)
