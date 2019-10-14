@@ -63,5 +63,5 @@ Associated job:
 
     | Product        | Description   | Example  |
     | ------------- |-------------| :-----|
-    | ALOS2 Main Product   | Re-packaged zipped file of ALOS2 main data. Similar to AUIG2 format, but zipped once.  | `ALOS2XXXXXXXXX-YYMMDD-XXXX1.5XXX.zip` (for L1.5) <br> `ALOS2XXXXXXXXX-YYMMDD-XXXX2.1XXX.zip` (for L2.1) <br> `ALOS2XXXXXXXXX-YYMMDD-XXXX1.1XXX.zip` (for L1.1) |
+    | ALOS2 Main Product   | Re-packaged zipped file of ALOS2 main data. Similar to AUIG2 format, but zipped once.  | `ALOS2*-YYMMDD-*1.5*.zip` (for L1.5) <br> `ALOS2*-YYMMDD-*2.1*` (for L2.1) <br> `ALOS2*-YYMMDD-*1.1*.zip` (for L1.1) |
     | Browse images | Only available for L1.5 and L2.1, browse images of geotiffs. |  `IMG-HX-ALOS2*_disp.browse.png`  |
