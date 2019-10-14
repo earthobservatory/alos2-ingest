@@ -51,7 +51,7 @@ Associated job:
 
 
 ## ALOS2 Dataset
-- Based on the uncompressed IMG-* file names, the jobs will create different ALOS-2 datasets (L1.1/L1.5/L2.1):
+- Based on the `IMG-*` file names in the uncompressed ALOS-2 package, the above jobs will all create different ALOS-2 datasets (L1.1/L1.5/L2.1):
 
     | ALOS-2 Format    | `type`   | `dataset`  |
     | ------------- |-------------| :-----|
