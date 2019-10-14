@@ -79,6 +79,7 @@ python3 ./alos2-ingest/gekko/scrape_alos2_aria_ingest.py -dir /home/data/INSAR/A
     | ALOS L1.1 CEOS   | `alos2_slc`  | `ALOS2-L1.1-SLC` |
     | ALOS L1.5 GeoTIFF | `L1.5_geotiff`  |  `ALOS2_GeoTIFF`  |
     | ALOS L2.1 GeoTIFF | `L2.1_geotiff`  |  `ALOS2_GeoTIFF`  |
+    | ALOS L1.1 Metadata | `alos2_slc_md`  |  `ALOS2-L1.1_SLC-MD`  |
 
 - Product format:
 
