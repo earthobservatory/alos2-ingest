@@ -28,6 +28,7 @@ def cmdLineParse():
     parser = argparse.ArgumentParser( description='Getting ALOS-2 L2.1 / L1.1 data into ARIA')
     parser.add_argument('-eor_id', action="store", dest="eor_id", default="", required=False, help='This is the EOR ID')
     parser.add_argument('-data_id', action="store", dest="data_id", default="", required=False, help='This is the Data ID')
+    parser.add_argument('-start_time', action="store", dest="start_time", default="", required=False, help='Get the list of EORs and files  based on start day, YYYYMMDDD')
     parser.add_argument('-u','--username', action="store", dest="username", help='Sentinel Asia Login, if not givem, checks .netrc')
     parser.add_argument('-p','--password', action="store", dest="password", help='Sentinel Asia Login, if not givem, checks .netrc')
     parser.add_argument('-dry_run', action='store_true', dest="dry_run", default=False, help='Will not downlaod files if flag is defined')
@@ -82,17 +83,15 @@ if __name__ == "__main__":
     try:
         ctx = alos2_productize.load_context()
         # first check if we need to read from _context.json
-        if not (args.eor_id or args.data_id):
-            args.eor_id = ctx["eor_id"]
-            args.data_id = ctx["data_id"]
+        args.eor_id = ctx["eor_id"]
+        args.data_id = ctx["data_id"]
+        args.start_time = ctx["start_date"]
 
-
-        if args.eor_id and args.data_id:
-            raise RuntimeError("Please only specify either data_id or eor_id, do not specify both!")
-        elif args.eor_id or args.data_id:
-            download_params = sa.get_all_params(args)
+        if not (args.eor_id or args.data_id or args.start_time):
+            raise RuntimeError("Please specify either eor_id or data_id or start_date")
+            exit(0)
         else:
-            raise RuntimeError("Please specify either data_id or eor_id to search for download.")
+            download_params = sa.get_all_params(args)
 
 
         if args.data_id:

@@ -26,7 +26,11 @@
       "destination": "context"
     },
     {
-      "name": "queue_eor_id",
+      "name": "start_date",
+      "destination": "context"
+    },
+    {
+      "name": "queue",
       "destination": "context"
     },
     {
