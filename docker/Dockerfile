@@ -1,4 +1,4 @@
-FROM hysds/pge-gdal
+FROM hysds/pge-isce_giant:latest
 
 MAINTAINER stchin "stchin@ntu.edu.sg"
 LABEL description="ALOS-2 PGE container"
@@ -7,8 +7,8 @@ ARG id
 ARG gid
 
 USER root
-RUN set -ex && \
- sudo pip install scipy --upgrade
+# RUN set -ex && \
+#  sudo pip install scipy --upgrade
 
 # create work directory
 RUN set -ex \
@@ -20,7 +20,14 @@ USER ops
 # copy alos2-ingest
 COPY . /home/ops/verdi/ops/alos2-ingest
 
-
 # set entrypoint
+USER ops
 WORKDIR /home/ops
 CMD ["/bin/bash", "--login"]
+
+
+ENV PYTHONPATH=/usr/local/isce:$PYTHONPATH
+ENV ISCE_HOME=/usr/local/isce/isce
+ENV PATH=$ISCE_HOME/applications:$ISCE_HOME/bin:/usr/local/gdal/bin:$PATH
+ENV LD_LIBRARY_PATH=/usr/local/gdal/lib:$LD_LIBRARY_PATH
+ENV GDAL_DATA=/usr/local/gdal/share/gdal

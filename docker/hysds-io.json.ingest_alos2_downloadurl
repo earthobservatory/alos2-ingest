@@ -1,5 +1,5 @@
 {
-  "label" : "ALOS2 Ingest Proto",
+  "label" : "ALOS2 Ingest from Download URL",
    "recommended-queues" : [
     "factotum-job_worker-large",
     "aria-job_worker-small",
@@ -12,19 +12,17 @@
   "allowed_accounts": [ "ops" ],
   "submission_type":"individual",
   "params" : [
+
     {
       "name": "download_url",
-      "from": "submitter"
-    },
-    {
-      "name": "file_type",
-      "from": "submitter"
-    },
-    {
-      "name": "path_number_to_check",
       "from": "submitter",
-      "optional": true,
-      "type": "number"
+      "optional": true
+    },
+    {
+      "name": "script",
+      "from": "value",
+      "type": "text",
+      "value": "ingestalos2_downloadurl.py"
     }
   ]
 }

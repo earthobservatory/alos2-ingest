@@ -1,0 +1,17 @@
+#!/bin/bash
+#PBS -N ingest_aria_alos2
+#PBS -P eos_ehill
+#PBS -l walltime=120:00:00
+#PBS -l select=1:ncpus=1
+#PBS -m bea
+# #PBS -q q32
+
+module purge
+deactivate
+module load anaconda/3  
+source ~/venv2/bin/activate
+
+cd $PBS_O_WORKDIR
+mkdir -p ./log
+python ~/alos2-ingest/ingest_alos2_md.py -dir $dir  -fdate $fdate > ./log/${fdate}.log 2>&1
+

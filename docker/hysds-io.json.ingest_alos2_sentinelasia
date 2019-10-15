@@ -1,0 +1,47 @@
+{
+  "label" : "ALOS2 Ingest from Sentinel Asia",
+   "recommended-queues" : [
+    "factotum-job_worker-large",
+    "aria-job_worker-small",
+    "volcano-job_worker-small",
+    "sealevel-job_worker-small",
+    "tectonics-job_worker-small",
+    "change_detection-job_worker-small",
+    "urgent_response-job_worker-small"
+   ],
+  "allowed_accounts": [ "ops" ],
+  "submission_type":"individual",
+  "params" : [
+    {
+      "name": "data_id",
+      "from": "submitter",
+      "placeholder":"(optional) either data_id/eor_id/start_time - specific file to download",
+      "optional": true
+    },
+    {
+      "name": "eor_id",
+      "from": "submitter",
+      "placeholder":"(optional) specify eor_id to download all ALOS2 Data from",
+      "optional": true
+    },
+    {
+      "name": "start_date",
+      "from": "submitter",
+      "placeholder":"(optional, YYYYMMDD) start_time to download all ALOS2 Data from",
+      "optional": true
+    },
+    {
+      "name": "queue",
+      "from": "submitter",
+      "default": "aria-job_worker-large",
+      "placeholder":"(optional) must be specified if eor_id / start_date is used",
+      "optional": true
+    },
+    {
+      "name": "script",
+      "from": "value",
+      "type": "text",
+      "value": "ingestalos2_sentinelasia.py"
+    }
+  ]
+}

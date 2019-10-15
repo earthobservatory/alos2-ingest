@@ -1,5 +1,5 @@
 {
-  "command": "/home/ops/verdi/ops/alos2-ingest/ingest_alos2_proto.sh",
+  "command": "/home/ops/verdi/ops/alos2-ingest/ingest_alos2.sh",
   "imported_worker_files": {
     "/home/ops/.netrc": "/home/ops/.netrc",
     "/home/ops/.aws": "/home/ops/.aws"
@@ -13,20 +13,16 @@
     "change_detection-job_worker-small",
     "urgent_response-job_worker-small"
   ],
-  "disk_usage": "50GB",
-  "soft_time_limit": 14400,
-  "time_limit": 14700,
+  "disk_usage": "200GB",
+  "soft_time_limit": 36000,
+  "time_limit": 40000,
   "params" : [
     {
       "name": "download_url",
-      "destination": "positional"
+      "destination": "context"
     },
     {
-      "name": "file_type",
-      "destination": "positional"
-    },
-    {
-      "name": "path_number_to_check",
+      "name": "script",
       "destination": "positional"
     }
   ]
