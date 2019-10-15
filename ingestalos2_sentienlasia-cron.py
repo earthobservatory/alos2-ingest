@@ -28,7 +28,7 @@ def cmdLineParse():
     parser = argparse.ArgumentParser( description='Getting ALOS-2 L2.1 / L1.1 data into ARIA')
     parser.add_argument('-start_time', action="store", dest="start_time", default="", required=True, help='Get the list of EORs and files  based on start day, YYYYMMDDD')
     parser.add_argument('-end_time', action="store", dest="end_time", default=datetime.today().strftime('%Y%m%d'), required=False, help='Get the list of EORs and files based on end day, YYYYMMDDD, defaults to today')
-    parser.add_argument('-t','--tag', action="store", dest="tag", default="eos-python3-decouple",help='Release version to submit job-ingest_alos2_sentinelasia download job')
+    parser.add_argument('-t','--tag', action="store", dest="tag", default="release-20191015",help='Release version to submit job-ingest_alos2_sentinelasia download job')
     parser.add_argument('-u','--username', action="store", dest="username", help='Sentinel Asia Login, if not givem, checks .netrc')
     parser.add_argument('-p','--password', action="store", dest="password", help='Sentinel Asia Login, if not givem, checks .netrc')
     parser.add_argument('-dry_run', action='store_true', dest="dry_run", default=False, help='Will not downlaod files if flag is defined')
