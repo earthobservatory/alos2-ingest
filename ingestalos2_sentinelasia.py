@@ -57,7 +57,12 @@ def submit_sa_data_download(data_id, queue, job_type):
             "value": ""
         },
         {
-            "name": "queue_eor_id",
+            "name": "start_date",
+            "from": "value",
+            "value": ""
+        },
+        {
+            "name": "queue",
             "from": "value",
             "value": ""
         },
