@@ -178,7 +178,7 @@ def productize(dataset_name, raw_dir, download_source):
 
         # we need to override the coordinates bbox to cover actual swath if dataset is Level2.1
         # L2.1 is Geo-coded (Map projection based on north-oriented map direction)
-        need_swath_poly = "2.1" in dataset_name
+        # need_swath_poly = "2.1" in dataset_name
         tile_output_dir = "{}/tiles/".format(proddir)
 
         for tf in tiff_files:
@@ -198,15 +198,18 @@ def productize(dataset_name, raw_dir, download_source):
             # create the browse pngs
             create_product_browse(processed_tif_disp)
 
+            # create kmz
             # create_product_kmz(processed_tif_disp)
 
-            if need_swath_poly:
-                coordinates = getFootprintJson(processed_tif_disp)
-                # Override cooirdinates from summary.txt
-                metadata['location']['coordinates'] = [coordinates]
-                dataset['location']['coordinates'] = [coordinates]
-                # do this once only
-                need_swath_poly = False
+            # create swath polygon from gdal_polygonize,
+            # UPDATE: 20191019, this does not work well in mountaineous regions! We saw this when ingesting data for Typhoon Hagibis: There were many polygons detected instead of 1.
+            # if need_swath_poly:
+            #     coordinates = getFootprintJson(processed_tif_disp)
+            #     # Override cooirdinates from summary.txt
+            #     metadata['location']['coordinates'] = [coordinates]
+            #     dataset['location']['coordinates'] = [coordinates]
+            #     # do this once only
+            #     need_swath_poly = False
 
         # udpate the tiles
         metadata.update(tile_md)
