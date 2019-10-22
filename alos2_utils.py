@@ -154,7 +154,7 @@ def create_metadata(alos2_dir, dataset_name):
         metadata = md_frm_summary(summary_file, metadata)
     elif os.path.exists(summary_file) and is_l21:
         metadata = md_frm_summary(summary_file, metadata)
-        metadata_extractor = md_frm_extractor(summary_file, {})
+        metadata_extractor = md_frm_extractor(alos2_dir, {})
         # overwrite location coordinates from summary.txt from the one from bos_sarcat,
         # because L2.1's summary.txt do not give scene bbox
         metadata['location']  = metadata_extractor['location']
