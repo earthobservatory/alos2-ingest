@@ -148,8 +148,7 @@ def create_product_browse(file):
 
 def productize(dataset_name, raw_dir, download_source):
     """Use extracted data to create metadata and the ALOS2 L1.1/L1.5/L2.1 product"""
-    is_l11 = alos2_utils.ALOS2_L11 in dataset_name
-    metadata, dataset, proddir = alos2_utils.create_product_base(raw_dir, dataset_name, is_l11)
+    metadata, dataset, proddir = alos2_utils.create_product_base(raw_dir, dataset_name)
 
     # zipfile name for main product for posting to ARIA's dataset product directory
     archive_filename = os.path.join(proddir, "{}.zip".format(proddir))
@@ -162,7 +161,7 @@ def productize(dataset_name, raw_dir, download_source):
         logging.info("Zipfile of raw_dir not found. Repackaging contents of %s to %s" % (raw_dir, archive_filename))
         shutil.make_archive(os.path.splitext(archive_filename)[0], 'zip', raw_dir)
 
-    if is_l11:
+    if alos2_utils.ALOS2_L11 in dataset_name:
         # create browse only for L1.1 data (if available)
         jpg_files = sorted(glob.glob(os.path.join(raw_dir, '*.jpg')))
 
@@ -178,7 +177,7 @@ def productize(dataset_name, raw_dir, download_source):
 
         # we need to override the coordinates bbox to cover actual swath if dataset is Level2.1
         # L2.1 is Geo-coded (Map projection based on north-oriented map direction)
-        need_swath_poly = "2.1" in dataset_name
+        # need_swath_poly = "2.1" in dataset_name
         tile_output_dir = "{}/tiles/".format(proddir)
 
         for tf in tiff_files:
@@ -198,15 +197,18 @@ def productize(dataset_name, raw_dir, download_source):
             # create the browse pngs
             create_product_browse(processed_tif_disp)
 
+            # create kmz
             # create_product_kmz(processed_tif_disp)
 
-            if need_swath_poly:
-                coordinates = getFootprintJson(processed_tif_disp)
-                # Override cooirdinates from summary.txt
-                metadata['location']['coordinates'] = [coordinates]
-                dataset['location']['coordinates'] = [coordinates]
-                # do this once only
-                need_swath_poly = False
+            # create swath polygon from gdal_polygonize,
+            # UPDATE: 20191019, this does not work well in mountaineous regions! We saw this when ingesting data for Typhoon Hagibis: There were many polygons detected instead of 1.
+            # if need_swath_poly:
+            #     coordinates = getFootprintJson(processed_tif_disp)
+            #     # Override cooirdinates from summary.txt
+            #     metadata['location']['coordinates'] = [coordinates]
+            #     dataset['location']['coordinates'] = [coordinates]
+            #     # do this once only
+            #     need_swath_poly = False
 
         # udpate the tiles
         metadata.update(tile_md)
