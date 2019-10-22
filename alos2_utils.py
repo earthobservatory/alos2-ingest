@@ -8,7 +8,8 @@ import datetime, os, json, logging, traceback
 from subprocess import check_call, check_output
 import glob
 ALOS2_L11 = "1.1"
-
+ALOS2_L15 = "1.5"
+ALOS2_L21 = "2.1"
 
 def download(download_url):
     # download
@@ -141,21 +142,30 @@ def md_frm_extractor(alos2_dir, metadata):
     return metadata
 
 
-def create_metadata(alos2_dir, dataset_name, is_l11):
+def create_metadata(alos2_dir, dataset_name):
     metadata = {}
     metadata = md_frm_dataset_name(metadata, dataset_name)
     summary_file = os.path.join(alos2_dir, "summary.txt")
-    if os.path.exists(summary_file) and not is_l11:
+    is_l11 = ALOS2_L11 in dataset_name
+    is_l15 = ALOS2_L15 in dataset_name
+    is_l21 = ALOS2_L21 in dataset_name
+
+    if os.path.exists(summary_file) and is_l15:
         metadata = md_frm_summary(summary_file, metadata)
+    elif os.path.exists(summary_file) and is_l21:
+        metadata = md_frm_summary(summary_file, metadata)
+        metadata_extractor = md_frm_extractor(summary_file, {})
+        # overwrite location coordinates from summary.txt from the one from bos_sarcat,
+        # because L2.1's summary.txt do not give scene bbox
+        metadata['location']  = metadata_extractor['location']
     elif is_l11:
         metadata = md_frm_extractor(alos2_dir, metadata)
     else:
         raise RuntimeError("Cannot recognise ALOS2 directory format!")
-
     return metadata
 
 
-def create_dataset(metadata, is_l11):
+def create_dataset(metadata):
     logging.info("Extracting datasets from metadata")
     # get settings for dataset version
     settings_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -165,7 +175,7 @@ def create_dataset(metadata, is_l11):
 
     # datasets.json
     # extract metadata for datasets
-    version = settings['ALOS2_SLC_VERSION'] if is_l11 else settings['ALOS2_GEOTIFF_VERSION']
+    version = settings['ALOS2_SLC_VERSION'] if ALOS2_L11 in metadata['prod_name'] else settings['ALOS2_GEOTIFF_VERSION']
     dataset = {
         'version': version,
         'label': metadata['prod_name'],
@@ -176,11 +186,11 @@ def create_dataset(metadata, is_l11):
 
     return dataset
 
-def create_product_base(raw_dir, dataset_name, is_l11):
-    metadata = create_metadata(raw_dir, dataset_name, is_l11)
+def create_product_base(raw_dir, dataset_name):
+    metadata = create_metadata(raw_dir, dataset_name)
 
     # create dataset.json
-    dataset = create_dataset(metadata, is_l11)
+    dataset = create_dataset(metadata)
 
     # create the product directory
     proddir = os.path.join(".", dataset_name)

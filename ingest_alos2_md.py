@@ -103,8 +103,7 @@ if __name__ == "__main__":
             shutil.rmtree(temp_dir)
         else:
             logging.info("Creating metadata for {}.".format(dataset_name))
-            is_l11 = alos2_utils.ALOS2_L11 in dataset_name
-            metadata, dataset, proddir = alos2_utils.create_product_base(raw_dir, dataset_name, is_l11)
+            metadata, dataset, proddir = alos2_utils.create_product_base(raw_dir, dataset_name)
 
             # add metadata
             metadata["gekko_archive_files"] = data_files
