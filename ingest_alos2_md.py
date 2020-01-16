@@ -79,7 +79,7 @@ if __name__ == "__main__":
         grq_es_url = args.grq_es_url
     else:
         # if not specidied, run app.conf
-        grq_es_url = sp.check_output('python -c "from hysds.celery import app; print app.conf["GRQ_ES_URL"]"',
+        grq_es_url = sp.check_output('python -c "from hysds.celery import app; print app.conf[\'GRQ_ES_URL\']"',
                                      shell=True)
 
     try:
