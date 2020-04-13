@@ -127,10 +127,10 @@ def create_alos2_md_isce(dirname, filename):
     md = {}
     md['geometry'] = {
         "coordinates":[[
-        bbox[0][1:None:-1],
-        bbox[1][1:None:-1],
-        bbox[2][1:None:-1],
-        bbox[3][1:None:-1],
+        bbox[0][1:None:-1], # NorthWest Corner
+        bbox[1][1:None:-1], # NorthEast Corner
+        bbox[2][1:None:-1], # SouthWest Corner
+        bbox[3][1:None:-1], # SouthEast Corner
         bbox[0][1:None:-1],
         ]],
         "type":"Polygon"
