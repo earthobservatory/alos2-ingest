@@ -21,10 +21,11 @@ def create_alos2app_xml(dir_name):
 
 
 def loadProduct(xmlname):
-    import isce, isceobj
     '''
     Load the product using Product Manager.
     '''
+    # from Cunren's code on extracting track data from alos2App
+    import isce, isceobj
     from iscesys.Component.ProductManager import ProductManager as PM
     pm = PM()
     pm.configure()
@@ -34,9 +35,9 @@ def loadProduct(xmlname):
 
 def loadTrack(date):
     '''
-    from Cunren's code on extracting track data from alos2App
     date: YYMMDD
     '''
+    # from Cunren's code on extracting track data from alos2App
     track = loadProduct('{}.track.xml'.format(date))
     track.frames = []
     frameParameterFiles = sorted(glob.glob(os.path.join('f*_*', '{}.frame.xml'.format(date))))
@@ -45,6 +46,7 @@ def loadTrack(date):
     return track
 
 def getMetadataFromISCE(track):
+    # from Cunren's code on extracting track data from alos2App
     import isce, isceobj
     from isceobj.Alos2Proc.Alos2ProcPublic import getBboxRdr
 
