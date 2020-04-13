@@ -43,7 +43,7 @@ if __name__ == "__main__":
             # no inputs defined (as per defaults)
             # we need to try to load from context
             args.username = ctx["auig2_username"]
-            decode = lambda pw: ''.join([chr(ord(pw[i]) >> (i % 5)) for i in range(len(pw))])
+            decode = lambda pw: ''.join([chr(ord(pw[i]) - (i%3 - 1 )) for i in range(len(pw))])
             args.password = decode(ctx["auig2_password"])
 
         if not args.order_id:
