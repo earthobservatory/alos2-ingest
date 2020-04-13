@@ -29,7 +29,7 @@
       "from": "submitter",
       "placeholder":"(optional) password - if getting from AUIG2",
       "optional": true,
-      "lambda":"lambda pw: pw.encode('base64')"
+      "lambda":"lambda pw: ''.join([chr(ord(pw[i]) << (i%5)) for i in range(len(pw))])"
     },
     {
       "name": "script",
