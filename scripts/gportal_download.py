@@ -113,9 +113,11 @@ def download(inps):
                         if chunk:  # filter out keep-alive new chunks
                             f.write(chunk)
                             if not count % 20:
+                                dateTimeObj = datetime.datetime.now()
+                                timestampStr = dateTimeObj.strftime("[%Y-%m-%d %H:%M:%S.%f]")
                                 size = count * CHUNK / (1024 * 1024)
                                 percent = count * CHUNK / filesize_b * 100
-                                print(f"Wrote {count} chunks: {size} MB ({percent:.2f} %)")
+                                print(f"{timestampStr}: Wrote {count} chunks: {size} MB ({percent:.2f} %)")
                     f.close()
                     total_time = time.time() - start
                     mb_sec = (os.path.getsize(o_file) / (1024 * 1024.0)) / total_time
