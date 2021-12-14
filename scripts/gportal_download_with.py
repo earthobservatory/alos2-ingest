@@ -92,7 +92,7 @@ def download(inps):
 
     with requests.Session() as s:
         if 'goto=' in inps.download_link:
-            download_link = inps.download_link.split("goto=")[-1] 
+            download_link = inps.download_link.split("goto=")[-1]
         else:
             download_link = inps.download_link
         with s.get(download_link, stream=True, cookies=cookie) as r_download:
