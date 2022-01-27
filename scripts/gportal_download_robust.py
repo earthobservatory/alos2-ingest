@@ -173,7 +173,7 @@ def download(inps):
                     download_complete = temp_size == filesize_b
                     if not download_complete:
                         percent = temp_size / filesize_b * 100
-                        print(f"{timestampStr}: Wrote {count} chunks: {size} MB ({percent:.2f} %)")
+                        print(f"{timestampStr}: Wrote  {temp_size} MB ({percent:.2f} %)")
                         print(f"Download not completed somehow. "
                               f"\n Restarting download from where we left off: ({temp_size/(1024 * 1024):.2f} MB)")
 
