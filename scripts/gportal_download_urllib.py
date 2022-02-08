@@ -90,7 +90,7 @@ def download_urllib(inps):
     cookie = {cookie['name']: cookie['value'] for cookie in driver_cookies}
     cookie_str = ""
     for cookie in driver_cookies:
-        cookie_str = cookie_str + f"{cookie['name']}={cookie['value']}; "
+        cookie_str = cookie_str + f"{cookie['name']}={cookie['value']};"
     print(cookie)
 
     ### OPEN A CONNECTION TO AUIG2 AND LOG IN ###

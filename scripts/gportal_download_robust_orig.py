@@ -47,7 +47,6 @@ from selenium.webdriver.chrome.options import Options
 
 LOGIN_URL = 'https://gportal.jaxa.jp/gpr/auth'
 MAXIMUM_LOOPS = 5
-CHUNK = 256 * 1024
 USERNAME = ''  # YOUR USERNAME CAN ALOS BE HARDWIRED HERE
 PASSWORD = ''  # YOUR PASSWORD CAN ALOS BE HARDWIRED HERE
 
@@ -87,6 +86,24 @@ gportal_download.py -o ORDER_ID
     return inps
 
 
+def download_file(url, file_path):
+    file_name = url.rsplit('/', 1)[-1]
+    file_full_location = file_path + "/" + file_name
+
+    total_content_size = int(requests.get(url, stream=True).headers['Content-Length'])
+    if os.path.exists(file_full_location):
+        temp_size = os.path.getsize(file_full_location)
+        if total_content_size == temp_size:
+            return
+    else:
+        temp_size = 0
+
+    headers = {'Range': 'bytes=%d-' % temp_size}
+    with requests.get(url, stream=True, headers=headers) as response:
+        response.raise_for_status()
+        with open(file_full_location, 'ab') as f:
+            shutil.copyfileobj(response.raw, f, length=16 * 1024 * 1024)
+
 
 def get_request_cookies(inps):
     driver = webdriver.PhantomJS()
@@ -95,14 +112,13 @@ def get_request_cookies(inps):
     driver.close()
     print(driver_cookies)
     cookie = {cookie['name']: cookie['value'] for cookie in driver_cookies}
+    cookie_str = ""
+    for cookie in driver_cookies:
+        cookie_str = cookie_str + f"{cookie['name']}={cookie['value']};"
+
     print(cookie)
-    return cookie
 
-def get_timenow():
-    dateTimeObj = datetime.datetime.now()
-    timestampStr = dateTimeObj.strftime("[%Y-%m-%d %H:%M:%S.%f]")
-
-    return timestampStr
+    return cookie_str
 
 
 def download(inps):
@@ -137,31 +153,38 @@ def download(inps):
                 if r_download.status_code < 300:
                     # continue to download only if requests passed
                     print(f"Downloading file to: {o_file} ({filesize_b / (1024 * 1024):.2f} MB)")
-                    with open(o_file, 'ab') as fl:
-                        # r_download.raw.decode_content = True
-                        # shutil.copyfileobj(r_download.raw, f, length=16 * 1024 * 1024)
+                    with open(o_file, 'ab') as f:
                         start = time.time()
-                        count = 0
-                        for chunk in r_download.iter_content(chunk_size=CHUNK):
-                            count += 1
-                            if chunk:  # filter out keep-alive new chunks
-                                fl.write(chunk)
-                                if not count % 20:
-                                    size = count * CHUNK / (1024 * 1024)
-                                    percent = count * CHUNK / filesize_b * 100
-                                    print(f"{get_timenow()}: Wrote {count} chunks: {size} MB ({percent:.2f} %)")
-                        fl.close()
+                        r_download.raw.decode_content = True
+                        shutil.copyfileobj(r_download.raw, f, length=16 * 1024 * 1024)
+                        #
+                        # count = 0
+                        # start = time.time()
+                        # CHUNK = 256 * 1024
+                        # for chunk in r_download.iter_content(chunk_size=CHUNK):
+                        #     count += 1
+                        #     if chunk:  # filter out keep-alive new chunks
+                        #         f.write(chunk)
+                        #         if not count % 20:
+                        #             dateTimeObj = datetime.datetime.now()
+                        #             timestampStr = dateTimeObj.strftime("[%Y-%m-%d %H:%M:%S.%f]")
+                        #             size = count * CHUNK / (1024 * 1024)
+                        #             percent = count * CHUNK / filesize_b * 100
+                        #             print(f"{timestampStr}: Wrote {count} chunks: {size} MB ({percent:.2f} %)")
+                        # f.close()
                         total_time = time.time() - start
                         mb_sec = (os.path.getsize(o_file) / (1024 * 1024.0)) / total_time
-                        print(f"{get_timenow()}: Speed: {mb_sec} MB/s")
-                        print(f"{get_timenow()}: Total Time: {total_time} s")
+                        dateTimeObj = datetime.datetime.now()
+                        timestampStr = dateTimeObj.strftime("[%Y-%m-%d %H:%M:%S.%f]")
+                        print(f"{timestampStr}: Speed: {mb_sec} MB/s")
+                        print(f"{timestampStr}: Total Time: {total_time} s")
                         temp_size = os.path.getsize(o_file)
 
         download_complete = temp_size == filesize_b
 
         if not download_complete:
             percent = temp_size / filesize_b * 100
-            print(f"{get_timenow()}: Wrote  {temp_size} MB ({percent:.2f} %)")
+            print(f"{timestampStr}: Wrote  {temp_size} MB ({percent:.2f} %)")
             print(f"Download not completed somehow. "
                   f"\n Restarting download from where we left off: ({temp_size/(1024 * 1024):.2f} MB)")
         else:
