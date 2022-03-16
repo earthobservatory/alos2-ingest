@@ -43,9 +43,8 @@ if __name__ == "__main__":
             # no inputs defined (as per defaults)
             # we need to try to load from context
             args.username = ctx["auig2_username"]
-            args.password = base64.b64decode(ctx["auig2_password"]).decode("utf-8")
-            # TODO: remember to remove this
-            print("password: %s " % args.password)
+            decode = lambda pw: ''.join([chr(ord(pw[i]) - (i%3 - 1 )) for i in range(len(pw))])
+            args.password = decode(ctx["auig2_password"])
 
         if not args.order_id:
             args.order_id = ctx["auig2_orderid"]

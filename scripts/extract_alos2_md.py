@@ -9,83 +9,138 @@ import json
 import re
 import requests
 
-def create_insar_xml(scene_xml):
-    fp = open('insarApp.xml', 'w')
-    fp.write('<insarApp>\n')
-    fp.write('<component name="insar">\n')
-    fp.write('        <property  name="Sensor name">ALOS2</property>\n')
-    fp.write('        <property name="dopplermethod">useDEFAULT</property>\n')
-    fp.write('        <component name="master">\n')
-    fp.write('            <catalog>{}</catalog>\n'.format(scene_xml))
-    fp.write('        </component>\n')
-    fp.write('        <component name="slave">\n')
-    fp.write('            <catalog>{}</catalog>\n'.format(scene_xml))
-    fp.write('        </component>\n')
+def create_alos2app_xml(dir_name):
+    fp = open('alos2App.xml', 'w')
+    fp.write('<alos2App>\n')
+    fp.write('    <component name="alos2insar">\n')
+    fp.write('        <property name="master directory">{}</property>\n'.format(os.path.abspath(dir_name)))
+    fp.write('        <property name="slave directory">{}</property>\n'.format(os.path.abspath(dir_name)))
     fp.write('    </component>\n')
-    fp.write('</insarApp>\n')
+    fp.write('</alos2App>\n')
     fp.close()
 
 
-def create_scene_xml(led_filename,img_filename):
-    scenefile = 'scene.xml'
-    fp = open(scenefile, 'w')
-    fp.write('<component>\n')
-    fp.write('    <property name="IMAGEFILE">\n')
-    fp.write('        <value>{}</value>\n'.format(img_filename))
-    fp.write('    </property>\n')
-    fp.write('    <property name="LEADERFILE">\n')
-    fp.write('        <value>{}</value>\n'.format(led_filename))
-    fp.write('    </property>\n')
-    fp.write('    <property name="OUTPUT">\n')
-    fp.write('        <value>dummy.raw</value>\n')
-    fp.write('    </property>\n')
-    fp.write('</component>\n')
-    fp.close()
-    return scenefile
+def loadProduct(xmlname):
+    '''
+    Load the product using Product Manager.
+    '''
+    # from Cunren's code on extracting track data from alos2App
+    import isce, isceobj
+    from iscesys.Component.ProductManager import ProductManager as PM
+    pm = PM()
+    pm.configure()
+    obj = pm.loadProduct(xmlname)
+    return obj
+
+
+def loadTrack(date):
+    '''
+    date: YYMMDD
+    '''
+    # from Cunren's code on extracting track data from alos2App
+    track = loadProduct('{}.track.xml'.format(date))
+    track.frames = []
+    frameParameterFiles = sorted(glob.glob(os.path.join('f*_*', '{}.frame.xml'.format(date))))
+    for x in frameParameterFiles:
+        track.frames.append(loadProduct(x))
+    return track
+
+def getMetadataFromISCE(track):
+    # from Cunren's code on extracting track data from alos2App
+    import isce, isceobj
+    from isceobj.Alos2Proc.Alos2ProcPublic import getBboxRdr
+
+    #####################################
+    # in image coordinate
+    #         1      2
+    #         --------
+    #         |      |
+    #         |      |
+    #         |      |
+    #         --------
+    #         3      4
+    # in geography coorindate
+    #        1       2
+    #         --------
+    #         \       \
+    #          \       \
+    #           \       \
+    #            --------
+    #            3       4
+    #####################################
+
+    pointingDirection = {'right': -1, 'left': 1}
+    bboxRdr = getBboxRdr(track)
+    rangeMin = bboxRdr[0]
+    rangeMax = bboxRdr[1]
+    azimuthTimeMin = bboxRdr[2]
+    azimuthTimeMax = bboxRdr[3]
+
+    # in image coordinate
+    # corner 1
+    llh1 = track.orbit.rdr2geo(azimuthTimeMin, rangeMin, height=0, side=pointingDirection[track.pointingDirection])
+    # corner 2
+    llh2 = track.orbit.rdr2geo(azimuthTimeMin, rangeMax, height=0, side=pointingDirection[track.pointingDirection])
+    # corner 3
+    llh3 = track.orbit.rdr2geo(azimuthTimeMax, rangeMin, height=0, side=pointingDirection[track.pointingDirection])
+    # corner 4
+    llh4 = track.orbit.rdr2geo(azimuthTimeMax, rangeMax, height=0, side=pointingDirection[track.pointingDirection])
+
+    # re-sort in geography coordinate
+    if track.passDirection.lower() == 'descending':
+        if track.pointingDirection.lower() == 'right':
+            footprint = [llh2, llh1, llh4, llh3]
+        else:
+            footprint = [llh1, llh2, llh3, llh4]
+    else:
+        if track.pointingDirection.lower() == 'right':
+            footprint = [llh4, llh3, llh2, llh1]
+        else:
+            footprint = [llh3, llh4, llh1, llh2]
+
+    # footprint
+    return footprint, azimuthTimeMin, azimuthTimeMax
 
 
 def get_alos2_obj(dir_name):
-    import isce
-    insar_obj = None
-    dataset_name = None
-    led_file = sorted(glob.glob(os.path.join(dir_name, 'LED*')))
+    track = None
     img_file = sorted(glob.glob(os.path.join(dir_name, 'IMG*')))
 
-    if len(img_file) > 0 and len(led_file)>0:
-        scenefile = create_scene_xml(led_file[0], img_file[0])
-        create_insar_xml(scenefile)
-        check_output("insarApp.py --steps --end=preprocess", shell=True)
-        f = open("PICKLE/preprocess", "rb")
-        insar_obj = pickle.load(f)
+    if len(img_file) > 0:
+        match = re.search('IMG-[A-Z]{2}-(ALOS2)(.{05})(.{04})-(\d{6})-.{4}.*',img_file[0])
+        if match:
+            date = match.group(4)
+            create_alos2app_xml(dir_name)
+            check_output("alos2App.py --steps --end=preprocess", shell=True)
+            track = loadTrack(date)
+            track.spacecraftName = match.group(1)
+            track.orbitNumber = match.group(2)
+            track.frameNumber = match.group(3)
 
-    return insar_obj
+    return track
 
 
+def create_alos2_md_isce(dirname, filename):
+    track = get_alos2_obj(dirname)
 
-def create_alos2_md_isce(insar_obj, filename):
-    from contrib.frameUtils.FrameInfoExtractor import FrameInfoExtractor
-    FIE = FrameInfoExtractor()
-    masterInfo = FIE.extractInfoFromFrame(insar_obj.frame)
+    bbox, sensingStart, sensingEnd = getMetadataFromISCE(track)
     md = {}
-    bbox  = masterInfo.bbox
-    md['bbox_seq'] = ["nearEarlyCorner","farEarlyCorner", "nearLateCorner","farLateCorner"]
-    md['bbox'] =  bbox
     md['geometry'] = {
         "coordinates":[[
-        [bbox[0][1],bbox[0][0]], # nearEarlyCorner
-        [bbox[1][1],bbox[1][0]], # farEarlyCorner
-        [bbox[3][1],bbox[3][0]], # farLateCorner
-        [bbox[2][1],bbox[2][0]], # nearLateCorner
-        [bbox[0][1],bbox[0][0]], # nearEarlyCorner
+        bbox[0][1:None:-1], # NorthWest Corner
+        bbox[1][1:None:-1], # NorthEast Corner
+        bbox[3][1:None:-1], # SouthWest Corner
+        bbox[2][1:None:-1], # SouthEast Corner
+        bbox[0][1:None:-1],
         ]],
         "type":"Polygon"
     }
-    md['start_time'] = masterInfo.sensingStart.strftime("%Y-%m-%dT%H:%M:%S.%f")
-    md['stop_time'] = masterInfo.sensingStop.strftime("%Y-%m-%dT%H:%M:%S.%f")
-    md['absolute_orbit'] = masterInfo.orbitNumber
-    md['frame'] = masterInfo.frameNumber
-    md['flight_direction'] = masterInfo.direction
-    md['satellite_name'] = masterInfo.spacecraftName
+    md['start_time'] = sensingStart.strftime("%Y-%m-%dT%H:%M:%S.%f")
+    md['stop_time'] = sensingEnd.strftime("%Y-%m-%dT%H:%M:%S.%f")
+    md['absolute_orbit'] = track.orbitNumber
+    md['frame'] = track.frameNumber
+    md['flight_direction'] = 'asc' if 'asc' in track.catalog['passdirection'] else 'dsc'
+    md['satellite_name'] = track.spacecraftName
     md['source'] = "isce_preprocessing"
 
     with open(filename, "w") as f:
@@ -138,8 +193,7 @@ if __name__ == '__main__':
         except Exception as e:
             print("Got exception trying to query bos sarcat: %s" % str(e))
             # use isce if we are unable to get the bbox from bos
-            insar_obj = get_alos2_obj(args.alos2dir)
-            create_alos2_md_isce(insar_obj, args.op_json)
+            create_alos2_md_isce(args.alos2dir, args.op_json)
 
 
 
