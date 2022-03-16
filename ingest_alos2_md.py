@@ -34,6 +34,8 @@ def cmdLineParse():
             help = 'frame and date of ALOS2 files in FFFF_YYMMDD format')
     parser.add_argument('-dsfile', dest='ds_file', type=str, default='~/hysds/datasets.json',
             help = 'datasets.json file for ingestion into ARIA')
+    parser.add_argument('-md-tag', dest='md_tag', type=str, default='',
+            help = 'additional tag')
     parser.add_argument('-hysdsdir', dest='hysds_dir', type=str, default='~/hysds',
                         help='directory of hysds repo where ingest_dataset.py is kept')
     parser.add_argument('-grq_es_url', dest='grq_es_url', type=str, default='',
@@ -54,10 +56,10 @@ def check_dataset(es_url, id, es_index="grq"):
         "fields": [],
     }
 
-    if es_url.endswith('/'):
-        search_url = '%s%s/_search' % (es_url, es_index)
+    if es_url.endswith("/".encode('utf-8')):
+        search_url = '%s%s/_search' % (es_url.decode("utf-8"), es_index)
     else:
-        search_url = '%s/%s/_search' % (es_url, es_index)
+        search_url = '%s/%s/_search' % (es_url.decode("utf-8"), es_index)
     r = requests.post(search_url, data=json.dumps(query))
     if r.status_code == 200:
         result = r.json()
@@ -79,7 +81,7 @@ if __name__ == "__main__":
         grq_es_url = args.grq_es_url
     else:
         # if not specidied, run app.conf
-        grq_es_url = sp.check_output('python -c "from hysds.celery import app; print app.conf["GRQ_ES_URL"]"',
+        grq_es_url = sp.check_output('/home/stchin/venv2/bin/python -c "from hysds.celery import app; print app.conf[\'GRQ_ES_URL\']"',
                                      shell=True)
 
     try:
@@ -107,6 +109,8 @@ if __name__ == "__main__":
 
             # add metadata
             metadata["gekko_archive_files"] = data_files
+            if args.md_tag:
+                metadata["tags"] =  args.md_tag
 
             # dump metadata
             with open(os.path.join(proddir, dataset_name + ".met.json"), "w") as f:
@@ -122,7 +126,7 @@ if __name__ == "__main__":
             #ingest
             ingest_script = os.path.join(args.hysds_dir, "scripts/ingest_dataset.py")
             logging.info("Ingesting {} into ARIA.".format(proddir))
-            sp.check_call("{} {}/{} {}".format(ingest_script,temp_dir,proddir, args.ds_file), shell=True)
+            sp.check_call("/home/stchin/venv2/bin/python {} {}/{} {}".format(ingest_script,temp_dir,proddir, args.ds_file), shell=True)
 
             #cleanup
             logging.info("Ingestion of {} complete. Cleaning up {} directory.".format(proddir,temp_dir))
