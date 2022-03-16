@@ -8,8 +8,9 @@
 
 module purge
 deactivate
-module load anaconda/3  
+module load anaconda2020/python3
 source ~/venv2/bin/activate
+source /home/share/insarscripts/stack_processor_aws/setup_dpm2.sh
 
 cd $PBS_O_WORKDIR
 mkdir -p ./log
