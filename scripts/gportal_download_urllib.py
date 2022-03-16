@@ -80,7 +80,7 @@ gportal_download.py -o ORDER_ID
     inps = parser.parse_args()
     return inps
 
-def download(inps):
+def download_urllib(inps):
     driver = webdriver.PhantomJS()
     selenium_login(driver=driver, link=LOGIN_URL, un=inps.username, pw=inps.password)
     driver_cookies = driver.get_cookies()
@@ -88,47 +88,68 @@ def download(inps):
 
     print(driver_cookies)
     cookie = {cookie['name']: cookie['value'] for cookie in driver_cookies}
+    cookie_str = ""
+    for cookie in driver_cookies:
+        cookie_str = cookie_str + f"{cookie['name']}={cookie['value']};"
     print(cookie)
 
-    with requests.Session() as s:
-        if 'goto=' in inps.download_link:
-            download_link = inps.download_link.split("goto=")[-1] 
-        else:
-            download_link = inps.download_link
-        with s.get(download_link, stream=True, cookies=cookie) as r_download:
-            r_download.raise_for_status()
-            filesize_b = float(r_download.headers['Content-Length'])
-            a = urllib.parse.urlparse(download_link)
-            o_file = os.path.basename(a.path) # file name with order id
-            # download file
-            if not os.path.isfile(o_file):
-                print(f"Downloading file to: {o_file} ({filesize_b/ (1024*1024):.2f} MB)")
+    ### OPEN A CONNECTION TO AUIG2 AND LOG IN ###
+    cookie_filename = "cookie_%s.txt" % datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    cj = http.cookiejar.MozillaCookieJar(cookie_filename)
+    if os.access(cookie_filename, os.F_OK):
+        cj.load()
+    opener = urllib.request.build_opener(
+        urllib.request.HTTPRedirectHandler(),
+        urllib.request.HTTPHandler(debuglevel=1),
+        urllib.request.HTTPSHandler(debuglevel=1),
+        urllib.request.HTTPCookieProcessor(cj)
+    )
+    opener.addheaders = [('User-Agent', 'Mozilla/5.0'), ('Cookie', cookie_str),('Connection', 'keep-alive')]
+    # opener.addheaders = [('User-agent', ('Mozilla/4.0 (compatible; MSIE 6.z0; ' 'Windows NT 5.2; .NET CLR 1.1.4322)'))]
+    ### DOWNLOAD THE FILE WITH THE GIVEN ORDER ID ###
+    if 'goto=' in inps.download_link:
+        download_link = inps.download_link.split("goto=")[-1]
+    else:
+        download_link = inps.download_link
 
-                with open(o_file, 'wb') as f:
-                    count = 0
-                    start = time.time()
-                    CHUNK = 256 * 1024
-                    for chunk in r_download.iter_content(chunk_size=CHUNK):
-                        count += 1
-                        if chunk:  # filter out keep-alive new chunks
-                            f.write(chunk)
-                            if not count % 20:
-                                dateTimeObj = datetime.datetime.now()
-                                timestampStr = dateTimeObj.strftime("[%Y-%m-%d %H:%M:%S.%f]")
-                                size = count * CHUNK / (1024 * 1024)
-                                percent = count * CHUNK / filesize_b * 100
-                                print(f"{timestampStr}: Wrote {count} chunks: {size} MB ({percent:.2f} %)")
-                    f.close()
-                    total_time = time.time() - start
-                    mb_sec = (os.path.getsize(o_file) / (1024 * 1024.0)) / total_time
-                    print("Speed: %s MB/s" % mb_sec)
-                    print("Total Time: %s s" % total_time)
+    f = opener.open(download_link)
+    print("Downloading from url: %s " % download_link)
+    # print("Header reply: %s " % f.headers['Content-Disposition'])
+    # filename = f.headers['Content-Disposition'].split("=")[-1].strip()
+    filesize_b = float(f.headers['Content-Length'])
+    a = urllib.parse.urlparse(download_link)
+    o_file = os.path.basename(a.path)  # file name with order id
+    print("ALOS-2 GPORTAL Download:", o_file)
+    start = time.time()
+    CHUNK = 256 * 1024
+    # meta = f.info()
+    filesize = f.getheader("Content-Length")
+    print(f"Downloading file to: {o_file} ({filesize_b / (1024 * 1024):.2f} MB)")
+    count = 0
 
+    with open(o_file, 'wb') as fp:
+        while True:
+            count += 1
+            chunk = f.read(CHUNK)
+            if not chunk: break
+            fp.write(chunk)
+            if not count % 20:
+                dateTimeObj = datetime.datetime.now()
+                timestampStr = dateTimeObj.strftime("[%Y-%m-%d %H:%M:%S.%f]")
+                size = count * CHUNK / (1024 * 1024)
+                percent = count * CHUNK / filesize_b * 100
+                print(f"{timestampStr}: Wrote {count} chunks: {size} MB ({percent:.2f} %)")
+    f.close()
+    total_time = time.time() - start
+    mb_sec = (os.path.getsize(o_file) / (1024 * 1024.0)) / total_time
+    print("Speed: %s MB/s" % mb_sec)
+    print("Total Time: %s s" % total_time)
 
+    return download_link
 
 if __name__ == '__main__':
     if len(sys.argv)==1:
         sys.argv.append('-h')
     ### READ IN PARAMETERS FROM THE COMMAND LINE ###
     inps = parse()
-    download(inps)
+    download_urllib(inps)
